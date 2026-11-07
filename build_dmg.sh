@@ -40,14 +40,17 @@ cp -R "$APP_PATH" "$TEMP_DIR/"
 # Create an alias to the Applications folder
 ln -s /Applications "$TEMP_DIR/Applications"
 
-# Create a DMG file
+# Create a DMG file. hdiutil refuses to overwrite, so remove the previous
+# DMG first: otherwise a stale image would be left behind looking current.
+rm -f "$DMG_PATH"
 hdiutil create "$DMG_PATH" -srcfolder "$TEMP_DIR" -format UDZO -volname "$APP_NAME"
+HDIUTIL_STATUS=$?
 
 # Clean up temporary files
 rm -rf "$TEMP_DIR"
 
 # Check if the DMG was created successfully
-if [ -f "$DMG_PATH" ]; then
+if [ $HDIUTIL_STATUS -eq 0 ] && [ -f "$DMG_PATH" ]; then
   echo "DMG created successfully at $DMG_PATH"
 else
   echo "Failed to create DMG."

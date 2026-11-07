@@ -87,5 +87,24 @@ else
     exit 1
 fi
 
+# --- Test 3: hdiutil fails while an old DMG is still present ---
+echo "Running Test 3: Stale DMG is not reported as success..."
+cleanup_test
+mkdir -p dist
+touch dist/Click2Minimize.dmg
+
+OUTPUT=$(bash ./build_dmg.sh 2>&1)
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 1 ] && echo "$OUTPUT" | grep -q "Failed to create DMG" && [ ! -f dist/Click2Minimize.dmg ]; then
+    echo "✅ Test 3 Passed"
+else
+    echo "❌ Test 3 Failed: Expected failure and no stale DMG left behind."
+    echo "Exit code: $EXIT_CODE"
+    echo "Output: $OUTPUT"
+    cleanup
+    exit 1
+fi
+
 cleanup
 echo "🎉 All tests passed successfully!"
