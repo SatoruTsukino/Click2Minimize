@@ -57,6 +57,14 @@ let s = GestureMath.scaled(CGRect(x: 100, y: 100, width: 400, height: 300), by: 
 check(abs(s.midX - 300) <= 1 && abs(s.midY - 250) <= 1 && s.width == 600, "scale around centre")
 check(GestureMath.scaled(CGRect(x: 0, y: 0, width: 200, height: 200), by: 0.1).width == 160, "scale min size")
 
+// Trackpad -> window offset
+let slow = GestureMath.trackpadDelta(dx: 0.001, dy: 0, screenWidth: 1000)
+check(abs(slow.dx - 1.125) < 0.01 && slow.dy == 0, "slow movement is near 1:1 with screen width")
+let fast = GestureMath.trackpadDelta(dx: 0.02, dy: 0, screenWidth: 1000)
+check(abs(fast.dx - 50) < 0.01, "fast movement is accelerated up to 2.5x")
+let up = GestureMath.trackpadDelta(dx: 0, dy: 0.0062, screenWidth: 1000)
+check(up.dy < 0 && up.dx == 0, "fingers moving up move the window up (y-down offset)")
+
 // Versions
 check(GestureMath.isNewerVersion("v2.2", than: "2.1"), "v-prefixed newer")
 check(!GestureMath.isNewerVersion("v2.1", than: "2.1"), "equal not newer")

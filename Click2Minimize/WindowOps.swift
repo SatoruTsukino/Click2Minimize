@@ -160,3 +160,74 @@ enum WindowOps {
         app.activate()
     }
 }
+
+/// Drags one window at a time. Callers give an offset from where the drag
+/// started; Accessibility writes happen on a background queue and only the
+/// newest position is sent, so a slow app never backs up the event tap or the
+/// trackpad, and the window never jumps from re-reading a stale position.
+final class WindowMover {
+    static let shared = WindowMover()
+
+    private let queue = DispatchQueue(label: "Click2Minimize window mover", qos: .userInteractive)
+    private let lock = NSLock()
+    private var window: AXUIElement?    // guarded by lock
+    private var pending: CGPoint?       // guarded by lock
+    private var writing = false         // guarded by lock
+    private var origin = CGPoint.zero   // main thread only
+    private var offset = CGVector.zero  // main thread only
+
+    private(set) var isMoving = false
+
+    /// Starts dragging `w`. Returns false if the window has no readable frame.
+    @discardableResult
+    func begin(_ w: AXUIElement) -> Bool {
+        guard let frame = AX.frame(w) else { return false }
+        origin = frame.origin
+        offset = .zero
+        lock.withLock { window = w; pending = nil }
+        isMoving = true
+        return true
+    }
+
+    /// Moves the window to its start position plus `offset`.
+    func move(to offset: CGVector) {
+        guard isMoving else { return }
+        self.offset = offset
+        let target = CGPoint(x: (origin.x + offset.dx).rounded(), y: (origin.y + offset.dy).rounded())
+        let start: Bool = lock.withLock {
+            pending = target
+            defer { writing = true }
+            return !writing
+        }
+        if start { queue.async { self.drain() } }
+    }
+
+    func move(by delta: CGVector) {
+        move(to: CGVector(dx: offset.dx + delta.dx, dy: offset.dy + delta.dy))
+    }
+
+    /// Keeps the drag consistent after something else (a pinch) moved the window.
+    func shiftOrigin(by delta: CGVector) {
+        origin.x += delta.dx
+        origin.y += delta.dy
+    }
+
+    func isMoving(_ w: AXUIElement) -> Bool {
+        isMoving && lock.withLock { window.map { CFEqual($0, w) } ?? false }
+    }
+
+    /// Ends the drag; the last pending position is still written.
+    func end() { isMoving = false }
+
+    private func drain() {
+        while true {
+            let next: (AXUIElement, CGPoint)? = lock.withLock {
+                guard let w = window, let p = pending else { writing = false; return nil }
+                pending = nil
+                return (w, p)
+            }
+            guard let (w, p) = next else { return }
+            AX.setPosition(w, p)
+        }
+    }
+}

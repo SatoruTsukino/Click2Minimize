@@ -155,6 +155,17 @@ enum GestureMath {
         return CGRect(x: (f.midX - w / 2).rounded(), y: (f.midY - h / 2).rounded(), width: w.rounded(), height: h.rounded())
     }
 
+    /// Converts finger movement on the trackpad (normalized, y up) into a
+    /// window offset in points (y down). Slow movement is precise; fast
+    /// movement is accelerated like the pointer, up to ~2.5 screen widths per
+    /// trackpad width. The trackpad is ~1.55 times wider than it is tall.
+    static func trackpadDelta(dx: CGFloat, dy: CGFloat, screenWidth: CGFloat) -> CGVector {
+        let speed = hypot(dx, dy / 1.55) // per-frame travel, in trackpad widths
+        let gain = 1.0 + 1.5 * min(1, speed / 0.012)
+        let scale = screenWidth * gain
+        return CGVector(dx: dx * scale, dy: -dy * scale / 1.55)
+    }
+
     /// True when two frames are equal within a few points.
     static func roughlyEqual(_ a: CGRect, _ b: CGRect, tolerance: CGFloat = 12) -> Bool {
         abs(a.minX - b.minX) <= tolerance && abs(a.minY - b.minY) <= tolerance &&

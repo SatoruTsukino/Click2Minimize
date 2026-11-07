@@ -48,7 +48,28 @@ final class Trackpad {
     private var devices: CFArray?
     private var deviceRefs: [UnsafeMutableRawPointer] = []
 
-    /// Contact frames arrive on a private thread; copy them out and process on main.
+    /// Contact frames arrive on a private thread at ~90 Hz. Only the newest
+    /// frame is handed to main, so a busy main thread never builds a backlog.
+    private static let frameLock = NSLock()
+    private static var latestFrame: [Touch] = []    // guarded by frameLock
+    private static var frameScheduled = false       // guarded by frameLock
+
+    private static func deliver(_ touches: [Touch]) {
+        let schedule: Bool = frameLock.withLock {
+            latestFrame = touches
+            defer { frameScheduled = true }
+            return !frameScheduled
+        }
+        guard schedule else { return }
+        DispatchQueue.main.async {
+            let frame: [Touch] = frameLock.withLock {
+                frameScheduled = false
+                return latestFrame
+            }
+            Trackpad.shared.process(frame)
+        }
+    }
+
     private static let callback: ContactCallback = { _, data, count, _, _ in
         var touches: [Touch] = []
         if let data, count > 0 {
@@ -62,7 +83,7 @@ final class Trackpad {
                                      majorAxis: base.load(fromByteOffset: 60, as: Float.self)))
             }
         }
-        DispatchQueue.main.async { Trackpad.shared.process(touches) }
+        deliver(touches)
         return 0
     }
 
@@ -135,6 +156,7 @@ final class Trackpad {
     private var moveStarted = false
 
     func beginWindowMove(_ w: AXUIElement) {
+        guard WindowMover.shared.begin(w) else { return }
         moveTarget = w
         moveLastCentroid = nil
         moveStarted = false
@@ -143,6 +165,7 @@ final class Trackpad {
 
     private func endWindowMove() {
         guard moveTarget != nil else { return }
+        WindowMover.shared.end()
         moveTarget = nil
         pinchTarget = nil
     }
@@ -303,15 +326,15 @@ final class Trackpad {
     private func moveWindow(_ w: AXUIElement, _ c: (Float, Float)) {
         defer { moveLastCentroid = c }
         guard let last = moveLastCentroid else { return }
-        // Map the trackpad's width to roughly a screen width; its height is ~1/1.55 of that.
-        let width = Float(NSScreen.main?.frame.width ?? 1440)
-        let dx = (c.0 - last.0) * width, dy = -(c.1 - last.1) * width / 1.55
-        guard abs(dx) + abs(dy) >= 1, let frame = AX.frame(w) else { return }
+        let fx = c.0 - last.0, fy = c.1 - last.1
+        let delta = GestureMath.trackpadDelta(dx: CGFloat(fx), dy: CGFloat(fy),
+                                              screenWidth: NSScreen.main?.frame.width ?? 1440)
+        guard abs(delta.dx) + abs(delta.dy) >= 0.5 else { return }
         if !moveStarted {
             moveStarted = true
             EventRouter.shared.threeFingerMoveBegan()
         }
-        AX.setPosition(w, CGPoint(x: frame.minX + CGFloat(dx), y: frame.minY + CGFloat(dy)))
+        WindowMover.shared.move(by: delta)
     }
 
     private func pinch(_ w: AXUIElement, _ t: [Touch], _ c: (Float, Float)) {
@@ -323,7 +346,13 @@ final class Trackpad {
         guard abs(ratio - 1) > 0.03 else { return }
         lastPinchSpan = s
         lastPinchTime = Date()
-        WindowOps.scale(w, by: CGFloat(ratio))
+        guard let frame = AX.frame(w) else { return }
+        let scaled = GestureMath.scaled(frame, by: CGFloat(ratio))
+        AX.setFrame(w, scaled)
+        // Keep an ongoing drag consistent with the pinch's re-centring.
+        if WindowMover.shared.isMoving(w) {
+            WindowMover.shared.shiftOrigin(by: CGVector(dx: scaled.minX - frame.minX, dy: scaled.minY - frame.minY))
+        }
     }
 
     // MARK: Two-finger rotation

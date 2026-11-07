@@ -65,8 +65,8 @@ final class EventRouter {
         var consumed = false        // a gesture used this press: swallow the rest
         var dragging = false
         var menuDismissed = false
-        var window: AXUIElement?
-        var windowOrigin = CGPoint.zero
+        var window: AXUIElement?    // right-drag gesture target
+        var movingWindow = false     // middle-drag is moving a window
     }
 
     private var right = ButtonTrack()
@@ -74,9 +74,7 @@ final class EventRouter {
     private var middleSimulated = false   // current middle press comes from a 3-finger click
     private var threeFingerHeldLeft: CGEvent? // 3-finger click held back while we see if the fingers move
     private var threeFingerMoving = false
-    private var leftDragWindow: AXUIElement?
-    private var leftDragOrigin = CGPoint.zero
-    private var leftDragStart = CGPoint.zero
+    private var leftDragStart: CGPoint?    // 3-finger drag (macOS three-finger drag) moving a window
     private var discardLeftUp = false
     private var discardOtherUp: Set<Int64> = []
     private var pendingDoubleRight: DispatchWorkItem?
@@ -159,9 +157,7 @@ final class EventRouter {
 
         if Trackpad.shared.touchCount == 3, !gesturesBlocked {
             if Pref.threeFingerDragToMove.bool, Trackpad.shared.threeFingerMoved, let w = AX.window(at: p),
-               AX.frame(w) != nil, !AX.isFullscreen(w) {
-                leftDragWindow = w
-                leftDragOrigin = AX.frame(w)!.origin
+               !AX.isFullscreen(w), WindowMover.shared.begin(w) {
                 leftDragStart = p
                 if Pref.threeFingerPinchToResize.bool { Trackpad.shared.pinchTarget = w }
                 return true
@@ -211,9 +207,9 @@ final class EventRouter {
     }
 
     private func leftDragged(_ e: CGEvent) -> Bool {
-        if let w = leftDragWindow {
+        if let start = leftDragStart {
             let p = e.location
-            AX.setPosition(w, CGPoint(x: leftDragOrigin.x + p.x - leftDragStart.x, y: leftDragOrigin.y + p.y - leftDragStart.y))
+            WindowMover.shared.move(to: CGVector(dx: p.x - start.x, dy: p.y - start.y))
             return true
         }
         if middleSimulated, let m = Synth.mouse(.otherMouseDragged, at: e.location, button: .center) {
@@ -224,8 +220,9 @@ final class EventRouter {
     }
 
     private func leftUp(_ e: CGEvent) -> Bool {
-        if leftDragWindow != nil {
-            leftDragWindow = nil
+        if leftDragStart != nil {
+            leftDragStart = nil
+            WindowMover.shared.end()
             Trackpad.shared.pinchTarget = nil
             return true
         }
@@ -486,21 +483,20 @@ final class EventRouter {
         case .otherMouseDragged:
             guard middle.down else { return false }
             if Pref.middleDragToMove.bool, !gesturesBlocked {
-                if middle.window == nil, hypot(p.x - middle.start.x, p.y - middle.start.y) > 4,
-                   let w = AX.window(at: middle.start), !AX.isFullscreen(w), let f = AX.frame(w) {
-                    middle.window = w
-                    middle.windowOrigin = f.origin
+                if !middle.movingWindow, hypot(p.x - middle.start.x, p.y - middle.start.y) > 4,
+                   let w = AX.window(at: middle.start), !AX.isFullscreen(w), WindowMover.shared.begin(w) {
+                    middle.movingWindow = true
                 }
-                if let w = middle.window {
+                if middle.movingWindow {
                     middle.consumed = true
-                    AX.setPosition(w, CGPoint(x: middle.windowOrigin.x + p.x - middle.start.x,
-                                              y: middle.windowOrigin.y + p.y - middle.start.y))
+                    WindowMover.shared.move(to: CGVector(dx: p.x - middle.start.x, dy: p.y - middle.start.y))
                 }
             }
             return true
         default:
             defer { middle = ButtonTrack() }
             guard middle.down else { return false }
+            if middle.movingWindow { WindowMover.shared.end() }
             if middle.consumed || middleClick(at: middle.start) { return true }
             if let held = middle.held {
                 Synth.replay(held)
