@@ -156,7 +156,7 @@ final class Trackpad {
     private var moveStarted = false
 
     func beginWindowMove(_ w: AXUIElement) {
-        guard WindowMover.shared.begin(w) else { return }
+        guard WindowMover.shared.begin(w, carryCursor: true) else { return }
         moveTarget = w
         moveLastCentroid = nil
         moveStarted = false

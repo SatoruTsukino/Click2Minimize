@@ -175,17 +175,35 @@ final class WindowMover {
     private var writing = false         // guarded by lock
     private var origin = CGPoint.zero   // main thread only
     private var offset = CGVector.zero  // main thread only
+    private var cursorStart: CGPoint?   // set while the pointer travels with the window
 
     private(set) var isMoving = false
 
-    /// Starts dragging `w`. Returns false if the window has no readable frame.
+    /// Lets the pointer be warped every frame without the system briefly
+    /// freezing it after each warp.
+    private static let warpSource: CGEventSource? = {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        source?.localEventsSuppressionInterval = 0
+        return source
+    }()
+
+    /// Starts dragging `w`. With `carryCursor`, the pointer is detached from
+    /// the pointing device and moved by the same amount as the window, so it
+    /// stays on the spot that was grabbed. Returns false if the window has no
+    /// readable frame.
     @discardableResult
-    func begin(_ w: AXUIElement) -> Bool {
+    func begin(_ w: AXUIElement, carryCursor: Bool = false) -> Bool {
         guard let frame = AX.frame(w) else { return false }
+        endCursorCarry()
         origin = frame.origin
         offset = .zero
         lock.withLock { window = w; pending = nil }
         isMoving = true
+        if carryCursor {
+            _ = Self.warpSource
+            cursorStart = Synth.cursor
+            CGAssociateMouseAndMouseCursorPosition(0)
+        }
         return true
     }
 
@@ -200,6 +218,9 @@ final class WindowMover {
             return !writing
         }
         if start { queue.async { self.drain() } }
+        if let c = cursorStart {
+            CGWarpMouseCursorPosition(CGPoint(x: c.x + offset.dx, y: c.y + offset.dy))
+        }
     }
 
     func move(by delta: CGVector) {
@@ -217,7 +238,17 @@ final class WindowMover {
     }
 
     /// Ends the drag; the last pending position is still written.
-    func end() { isMoving = false }
+    func end() {
+        isMoving = false
+        endCursorCarry()
+    }
+
+    /// Hands the pointer back to the pointing device.
+    private func endCursorCarry() {
+        guard cursorStart != nil else { return }
+        cursorStart = nil
+        CGAssociateMouseAndMouseCursorPosition(1)
+    }
 
     private func drain() {
         while true {

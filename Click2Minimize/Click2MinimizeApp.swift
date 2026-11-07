@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         SystemPrivate.setNativeCommandTab(enabled: true)
         DisplayControl.restoreGamma()
+        WindowMover.shared.end() // never leave the pointer detached
     }
 
     private func startWhenTrusted() {
