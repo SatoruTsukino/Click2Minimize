@@ -7,20 +7,48 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		21498BA82D00A20600EE1BF3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21498BA72D00A20600EE1BF3 /* ContentView.swift */; };
 		21B199F72CFF981D00EA628D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 21B199F62CFF981D00EA628D /* Assets.xcassets */; };
-		21B19A052CFF9D1300EA628D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B19A042CFF9D1300EA628D /* AppDelegate.swift */; };
 		21E5E2E72D009E7E00B51E70 /* Accessibility.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21E5E2E62D009E7E00B51E70 /* Accessibility.framework */; };
+		4D195383318B937DD784BBEE /* Click2MinimizeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51320030CFF61052F737DA7 /* Click2MinimizeApp.swift */; };
+		3E8B86F3B63AB698EE91D42A /* Prefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0FA2C5AFF291E62EE5276FB /* Prefs.swift */; };
+		4E01000AC2B535B0DEBA580A /* Input.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45F7E8023D37A885344D8E9C /* Input.swift */; };
+		880702E07EB48F5B1B9199BC /* AX.swift in Sources */ = {isa = PBXBuildFile; fileRef = 778733A270572E4A88ADC723 /* AX.swift */; };
+		E8C30E54AC728C431F064CCB /* WindowOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF53944BE6CCBF70FD61722 /* WindowOps.swift */; };
+		F96718C10A2143DF4239E784 /* GestureAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A1C062526CD8D712A2FC91 /* GestureAction.swift */; };
+		93950C12F0B0332F5FC2EDA5 /* GestureMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = E730E018648A867238E33FDC /* GestureMath.swift */; };
+		8A6E1C210653A4FDE792429A /* Dock.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10964D9E083F98EA08E004C /* Dock.swift */; };
+		304053CF62C18854882612E4 /* EventRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C014416F40A6B5A385F6077 /* EventRouter.swift */; };
+		67F41E2D61728D2D51CA5F99 /* Trackpad.swift in Sources */ = {isa = PBXBuildFile; fileRef = CABBFE95D4050578FCCE5ACE /* Trackpad.swift */; };
+		9F2352A3E21A8720C0B667DF /* ButtonFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D1F2AC529C923634D265E76 /* ButtonFinder.swift */; };
+		9AA4552D1E6DAE6E832CC28F /* Overlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88952C38A96C2558D8735B01 /* Overlays.swift */; };
+		AC1542507C4F60EC45686A1B /* AppSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881ABD31A607E4F4173F6C5 /* AppSwitcher.swift */; };
+		698B5C7C5310ECDECF17BAED /* WindowOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82C8B3965205FC09E83D8B6D /* WindowOverview.swift */; };
+		7CCBA82B76793BBBA26D5820 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C628FFAF90BF6F485087D15 /* Updater.swift */; };
+		C24299D89D285E985C089C0F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 344231C687A1F4BDC84AE838 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		21498BA72D00A20600EE1BF3 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		21B199EF2CFF981C00EA628D /* Click2Minimize.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Click2Minimize.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21B199F62CFF981D00EA628D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		21B199FB2CFF981D00EA628D /* Click2Minimize.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Click2Minimize.entitlements; sourceTree = "<group>"; };
-		21B19A042CFF9D1300EA628D /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		21B19A082D009C6E00EA628D /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		21E5E2E62D009E7E00B51E70 /* Accessibility.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accessibility.framework; path = System/Library/Frameworks/Accessibility.framework; sourceTree = SDKROOT; };
+		C51320030CFF61052F737DA7 /* Click2MinimizeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Click2MinimizeApp.swift; sourceTree = "<group>"; };
+		B0FA2C5AFF291E62EE5276FB /* Prefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prefs.swift; sourceTree = "<group>"; };
+		45F7E8023D37A885344D8E9C /* Input.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Input.swift; sourceTree = "<group>"; };
+		778733A270572E4A88ADC723 /* AX.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AX.swift; sourceTree = "<group>"; };
+		CEF53944BE6CCBF70FD61722 /* WindowOps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOps.swift; sourceTree = "<group>"; };
+		63A1C062526CD8D712A2FC91 /* GestureAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureAction.swift; sourceTree = "<group>"; };
+		E730E018648A867238E33FDC /* GestureMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureMath.swift; sourceTree = "<group>"; };
+		F10964D9E083F98EA08E004C /* Dock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dock.swift; sourceTree = "<group>"; };
+		7C014416F40A6B5A385F6077 /* EventRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRouter.swift; sourceTree = "<group>"; };
+		CABBFE95D4050578FCCE5ACE /* Trackpad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trackpad.swift; sourceTree = "<group>"; };
+		5D1F2AC529C923634D265E76 /* ButtonFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonFinder.swift; sourceTree = "<group>"; };
+		88952C38A96C2558D8735B01 /* Overlays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Overlays.swift; sourceTree = "<group>"; };
+		2881ABD31A607E4F4173F6C5 /* AppSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSwitcher.swift; sourceTree = "<group>"; };
+		82C8B3965205FC09E83D8B6D /* WindowOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOverview.swift; sourceTree = "<group>"; };
+		4C628FFAF90BF6F485087D15 /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
+		344231C687A1F4BDC84AE838 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,9 +83,23 @@
 		21B199F12CFF981C00EA628D /* Click2Minimize */ = {
 			isa = PBXGroup;
 			children = (
-				21498BA72D00A20600EE1BF3 /* ContentView.swift */,
+				C51320030CFF61052F737DA7 /* Click2MinimizeApp.swift */,
+				B0FA2C5AFF291E62EE5276FB /* Prefs.swift */,
+				45F7E8023D37A885344D8E9C /* Input.swift */,
+				778733A270572E4A88ADC723 /* AX.swift */,
+				CEF53944BE6CCBF70FD61722 /* WindowOps.swift */,
+				63A1C062526CD8D712A2FC91 /* GestureAction.swift */,
+				E730E018648A867238E33FDC /* GestureMath.swift */,
+				F10964D9E083F98EA08E004C /* Dock.swift */,
+				7C014416F40A6B5A385F6077 /* EventRouter.swift */,
+				CABBFE95D4050578FCCE5ACE /* Trackpad.swift */,
+				5D1F2AC529C923634D265E76 /* ButtonFinder.swift */,
+				88952C38A96C2558D8735B01 /* Overlays.swift */,
+				2881ABD31A607E4F4173F6C5 /* AppSwitcher.swift */,
+				82C8B3965205FC09E83D8B6D /* WindowOverview.swift */,
+				4C628FFAF90BF6F485087D15 /* Updater.swift */,
+				344231C687A1F4BDC84AE838 /* SettingsView.swift */,
 				21B19A082D009C6E00EA628D /* Info.plist */,
-				21B19A042CFF9D1300EA628D /* AppDelegate.swift */,
 				21B199F62CFF981D00EA628D /* Assets.xcassets */,
 				21B199FB2CFF981D00EA628D /* Click2Minimize.entitlements */,
 			);
@@ -141,8 +183,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				21498BA82D00A20600EE1BF3 /* ContentView.swift in Sources */,
-				21B19A052CFF9D1300EA628D /* AppDelegate.swift in Sources */,
+				4D195383318B937DD784BBEE /* Click2MinimizeApp.swift in Sources */,
+				3E8B86F3B63AB698EE91D42A /* Prefs.swift in Sources */,
+				4E01000AC2B535B0DEBA580A /* Input.swift in Sources */,
+				880702E07EB48F5B1B9199BC /* AX.swift in Sources */,
+				E8C30E54AC728C431F064CCB /* WindowOps.swift in Sources */,
+				F96718C10A2143DF4239E784 /* GestureAction.swift in Sources */,
+				93950C12F0B0332F5FC2EDA5 /* GestureMath.swift in Sources */,
+				8A6E1C210653A4FDE792429A /* Dock.swift in Sources */,
+				304053CF62C18854882612E4 /* EventRouter.swift in Sources */,
+				67F41E2D61728D2D51CA5F99 /* Trackpad.swift in Sources */,
+				9F2352A3E21A8720C0B667DF /* ButtonFinder.swift in Sources */,
+				9AA4552D1E6DAE6E832CC28F /* Overlays.swift in Sources */,
+				AC1542507C4F60EC45686A1B /* AppSwitcher.swift in Sources */,
+				698B5C7C5310ECDECF17BAED /* WindowOverview.swift in Sources */,
+				7CCBA82B76793BBBA26D5820 /* Updater.swift in Sources */,
+				C24299D89D285E985C089C0F /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -202,7 +258,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -259,7 +315,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -277,7 +333,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = AMWSZNUAX5;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -286,13 +342,14 @@
 				INFOPLIST_FILE = Click2Minimize/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Click2Minimize;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 3.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.idemfactor.Click2Minimize;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -311,7 +368,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = AMWSZNUAX5;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -320,13 +377,14 @@
 				INFOPLIST_FILE = Click2Minimize/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Click2Minimize;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 3.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.idemfactor.Click2Minimize;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -7,64 +7,70 @@
 
 <p align="center">
   <a href="https://github.com/hatimhtm/Click2Minimize/releases/latest"><img src="https://img.shields.io/github/v/release/hatimhtm/Click2Minimize?style=flat-square&label=DOWNLOAD&labelColor=14151A&color=2E4FD6" alt="Latest release" /></a>
-  <img src="https://img.shields.io/badge/macOS-13.0+-2E4FD6?style=flat-square&logo=apple&logoColor=white&labelColor=14151A&color=2E4FD6" alt="macOS 13+" />
+  <img src="https://img.shields.io/badge/macOS-14.0+-2E4FD6?style=flat-square&logo=apple&logoColor=white&labelColor=14151A&color=2E4FD6" alt="macOS 14+" />
   <img src="https://img.shields.io/badge/Swift-5-2E4FD6?style=flat-square&logo=swift&logoColor=white&labelColor=14151A&color=2E4FD6" alt="Swift 5" />
   <img src="https://img.shields.io/badge/Xcode-16-2E4FD6?style=flat-square&logo=xcode&logoColor=white&labelColor=14151A&color=2E4FD6" alt="Xcode 16" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/LICENSE-POLYFORM_NC-2E4FD6?style=flat-square&labelColor=14151A&color=2E4FD6" alt="PolyForm Noncommercial" /></a>
 </p>
 
 <p align="center">
-  <em><strong>Click an app's dock icon to minimize its windows.</strong> macOS doesn't ship with this behaviour by default: Click2Minimize is a ~570-LOC Swift menu-bar utility that adds it. Accessory app, no window, no telemetry. Lives in the menu bar, runs an event tap, talks to the dock via Accessibility + AppleScript. Free to use personally, not for commercial reuse (see <a href="LICENSE">LICENSE</a>).</em>
+  <em><strong>Click an app's dock icon to minimize its windows, and a lot more.</strong> Click2Minimize is a free Swift menu-bar utility that adds the window, Dock and gesture behaviour macOS leaves out: minimize, close, fill, snap, move and resize windows without aiming at tiny buttons, plus an enhanced app switcher and a window overview that includes minimized windows. Every feature is free: no license key, no trial, no telemetry. Free to use personally, not for commercial reuse (see <a href="LICENSE">LICENSE</a>).</em>
 </p>
 
 ## What it does
 
-When you click the dock icon of an already-focused app, macOS does nothing: the click just re-activates an app that's already active. Click2Minimize swaps that no-op for the obvious behaviour: minimize the app's windows. Click again to bring them back. Like the Windows taskbar, but on macOS.
+The original behaviour is on by default: click the Dock icon of the app you're already using and its windows minimize. Click again to bring them back, like the Windows taskbar. Everything else is off until you turn it on in Settings, one feature at a time.
 
-- Click a **focused** app's dock icon → windows minimize.
-- Click an **unfocused** app's icon → default macOS behaviour (focus, raise).
-- Click **Launchpad / Trash / Downloads** → default behaviour (these have no windows to minimize).
-- App is **fullscreen** → pass-through (no minimize, you didn't mean it).
+| Area | Features |
+|---|---|
+| **Dock** | Click a focused app's icon to minimize all windows, minimize the front one, cycle windows, or hide the app · hand focus to the previous app after the last window goes · double-click an icon to hide other apps · middle-click an icon to quit · hover an icon for App Exposé · replace Finder's icon with another app · lock the Dock to the main display · haptic tick across icons · instant auto-hide · minimize into app icon |
+| **Minimize** | Right-drag down · hold right, click left · 3-finger swipe down |
+| **Close** | Triple right-click · middle-click near any button matching a keyword (no aiming) · middle-click to dismiss notification banners |
+| **Full screen & fill** | Right-drag up · double right-click to fill (and restore) · hold left, click right · double-click the camera area |
+| **Move & resize** | Middle-drag anywhere · 3-finger drag anywhere · middle-button + scroll · pinch during 3-finger drag |
+| **Snap & warp** | Right-drag to halves, quarters or maximize with a live preview · double right-click a title bar, or 2-finger double-click at the top of the trackpad, to move to the next display |
+| **App switcher** | Replace ⌘⇥ · hold right and scroll · 3-finger swipe up · pinned apps · keep quit apps · type a letter to jump · per-app show/hide hotkeys · per-app auto-quit after idling |
+| **Window overview & stash** | A grid of every window including minimized and hidden ones (4-finger swipe, double-click a screen edge, or right + side button) · middle-click to close · stash hides everything and brings it back |
+| **Shortcut gestures** | Right-drag circles and shakes, 2-finger rotation, wheel tilt: each runs a window action, Mission Control, a desktop switch, a keyboard shortcut or a Shortcuts.app shortcut |
+| **Universal** | Back / forward everywhere via 3-finger swipe or mouse side buttons, with per-app overrides · fn + swipe/scroll to jump to top or bottom · modifier + swipe/scroll as arrow keys · 3-finger click as middle click · trackpad-edge slide for brightness and volume |
+| **Control** | Exclude apps from gestures · pause while a game is in front · palm rejection · back up and restore settings · hide the menu-bar icon |
 
 ## How it works
 
 ```
-                                                 ┌─────────────────────┐
-                                                 │ NSWorkspace notifs  │
-                                                 │  (launch · activate │
-                                                 │   · space change)   │
-                                                 └──────────┬──────────┘
-                                                            │ debounced 300ms
-                                                            ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐
-│ CGEvent tap     │───▶│ hit-test mouse  │───▶│ AppleScript query Dock  │
-│ (left mousedown)│    │ vs dock rects   │    │ → rects + app names     │
-└─────────────────┘    └─────────────────┘    └─────────────────────────┘
-                                │
-                                ▼
-              ┌─────────────────────────────────────────┐
-              │ AXUIElement → set kAXMinimized = true   │
-              │ on every visible window of the app      │
-              └─────────────────────────────────────────┘
+ CGEvent tap (mouse, scroll, keys) ──┐
+                                     ├──▶ EventRouter ──▶ Dock · WindowOps · AppSwitcher · Overview · Actions
+ MultitouchSupport (raw touches) ────┘        │
+                                              └── held clicks are replayed when no gesture happens
 ```
 
-- **Event tap** runs at `cghidEventTap` / `tailAppendEventTap`, captures left mouse-down only.
-- **Dock rects** are cached and refreshed on a trailing-edge 300ms debounce: bursts of `didLaunch / didActivate / activeSpaceDidChange` collapse into a single AppleScript call.
-- **Window minimization** goes through `AXUIElementSetAttributeValue(kAXMinimizedAttribute)`: the proper accessibility API, not key-event simulation.
-- **Fullscreen detection** reads `AXFullScreen` on the frontmost app's windows (rewritten in 1.5: the old check was inspecting Click2Minimize's own windows).
+- **One event tap** at `cghidEventTap` routes every mouse, scroll and key event. Each button has its own state machine; a press that turns out not to be a gesture is replayed, so normal clicks and context menus keep working.
+- **Dock items are hit-tested live** through Accessibility at the pointer. That is correct with magnification, auto-hide and multiple displays, and needs no Automation (AppleScript) permission any more.
+- **Window control** uses the Accessibility API (`AXMinimized`, `AXFullScreen`, position and size, the close button's press action), never simulated clicks on title-bar buttons.
+- **Trackpad gestures** read raw contacts from the private `MultitouchSupport` framework, loaded at runtime and only started while a trackpad feature is on.
+- **Window overview thumbnails** use ScreenCaptureKit when Screen Recording is granted. Windows are snapshotted just before Click2Minimize minimizes them, because minimized windows can't be captured later. Without the permission the overview shows app icons.
+- **Gesture maths** (lines, circles, shakes, snap zones, display mapping, version checks) lives in a pure Swift file covered by `./test_logic.sh`.
 
 ## Highlights
 
 | | |
 |---|---|
-| **No window** | `LSUIElement`-style accessory app; lives only in the menu bar |
-| **No telemetry** | Zero network calls except the GitHub releases check on launch |
-| **No background daemon** | Just one process, registers a `CGEvent` tap via Accessibility |
-| **Modern Swift logging** | `os.Logger` with subsystem + privacy modifiers; no `print()` spam in Release |
-| **Opt-in launch-at-login** | SwiftUI toggle wires `SMAppService.mainApp` register/unregister; was unconditional before 1.5 |
-| **Fallback dock scan** | If `AXUIElement` can't read the dock list, an AppleScript fallback recovers app names from `System Events` |
-| **Universal binary** | `xcodebuild -configuration Release` produces arm64 + x86_64; ad-hoc signed DMG |
-| **Source-available** | PolyForm Noncommercial 1.0.0: read it, learn from it, run it personally, don't ship it |
+| **Free, all of it** | No license, trial or paywall. The commercial Click2Minimize 3.x sells most of these features; here they are free |
+| **No window** | Menu-bar accessory app (`LSUIElement`); the icon can be hidden, and launching the app again opens Settings |
+| **No telemetry** | Zero network calls except the GitHub releases check |
+| **One permission** | Accessibility. Screen Recording is optional and only adds thumbnails |
+| **Opt-in everything** | Only the original click-to-minimize is on by default |
+| **Universal binary** | arm64 + x86_64; ad-hoc signed DMG |
+| **Source-available** | PolyForm Noncommercial 1.0.0 |
+
+## 3.0: what changed from 2.1
+
+- **New**: feature parity with the commercial Click2Minimize 3.x (Dock, window controls, snapping, app switcher, window overview and stash, shortcut gestures, universal navigation, trackpad gestures, backup and restore), reimplemented from scratch and free.
+- **Changed**: Dock detection moved from an AppleScript query of System Events to live Accessibility hit-testing. The Automation permission and the per-app name map hack are gone.
+- **Changed**: no relaunch after granting Accessibility. The app starts working as soon as access is granted.
+- **Changed**: Settings rebuilt as a sidebar window with one page per area.
+- **Fixed**: the update check never offered updates, because `v`-prefixed tags parsed as version 0. Install now stages the new app and swaps it in atomically, instead of deleting the old one first.
+- **Requires**: macOS 14 (for ScreenCaptureKit window snapshots).
 
 ## 2.1: what changed from 2.0
 
@@ -81,8 +87,9 @@ When you click the dock icon of an already-focused app, macOS does nothing: the 
 
 1. Grab the latest `.dmg` from [Releases](../../releases/latest).
 2. Open it, drag `Click2Minimize.app` into `/Applications`.
-3. Launch it. You'll be prompted for **Accessibility** permission: open System Settings → Privacy & Security → Accessibility, toggle Click2Minimize on.
-4. If you use Catalyst / Electron apps and want the fallback to work cleanly, also grant **Automation** (asked on first need).
+3. Launch it. You'll be prompted for **Accessibility** permission: open System Settings → Privacy & Security → Accessibility and toggle Click2Minimize on. It starts working right away.
+4. Optional: grant **Screen Recording** from Settings › General to get window thumbnails in the window overview.
+5. Some gestures overlap macOS trackpad gestures (3- and 4-finger swipes). Turn those off in System Settings › Trackpad › More Gestures before enabling the Click2Minimize versions.
 
 The DMG is ad-hoc signed, so the first launch will need a right-click → Open to get past Gatekeeper.
 
@@ -97,9 +104,13 @@ xcodebuild -scheme Click2Minimize -configuration Release -derivedDataPath build
 
 # Or build the full DMG in ./dist
 ./build_dmg.sh
+
+# Logic tests (gesture maths) and build-script tests
+./test_logic.sh
+./test_build_dmg.sh
 ```
 
-Requires Xcode 15+. Targets macOS 13.0+.
+Requires Xcode 16+. Targets macOS 14.0+.
 
 ## License
 
