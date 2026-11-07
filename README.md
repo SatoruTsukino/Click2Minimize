@@ -23,17 +23,18 @@ The original behaviour is on by default: click the Dock icon of the app you're a
 
 | Area | Features |
 |---|---|
-| **Dock** | Click a focused app's icon to minimize all windows, minimize the front one, cycle windows, or hide the app · hand focus to the previous app after the last window goes · double-click an icon to hide other apps · middle-click an icon to quit · hover an icon for App Exposé · replace Finder's icon with another app · lock the Dock to the main display · haptic tick across icons · instant auto-hide · minimize into app icon |
+| **Dock** | Click a focused app's icon to minimize all windows, minimize the front one, cycle windows, or hide the app · hand focus to the previous app after the last window goes · double-click an icon to hide other apps · middle-click an icon to quit · hover an icon for App Exposé · replace Finder's icon with another app · lock the Dock to the main display · Dock Fidget: slide from the trackpad's bottom edge to run the pointer along the Dock with a haptic tick per icon · instant auto-hide · minimize into app icon |
 | **Minimize** | Right-drag down · hold right, click left · 3-finger swipe down |
-| **Close** | Triple right-click · middle-click near any button matching a keyword (no aiming) · middle-click to dismiss notification banners |
+| **Close & quit** | Triple right-click · middle-click near any button matching a keyword (no aiming) · middle-click to dismiss notification banners · middle-click a window in Mission Control or App Exposé to close it · middle-click an app in the Dock, the switcher or Stage Manager to quit it |
 | **Full screen & fill** | Right-drag up · double right-click to fill (and restore) · hold left, click right · double-click the camera area |
-| **Move & resize** | Middle-drag anywhere · 3-finger drag anywhere · middle-button + scroll · pinch during 3-finger drag |
+| **Move & resize** | Middle-drag anywhere · light 3-finger press, then move without pressure · middle-button + scroll · pinch during the 3-finger drag · animated moves (respects Reduce Motion) |
 | **Snap & warp** | Right-drag to halves, quarters or maximize with a live preview · double right-click a title bar, or 2-finger double-click at the top of the trackpad, to move to the next display |
 | **App switcher** | Replace ⌘⇥ · hold right and scroll · 3-finger swipe up · pinned apps · keep quit apps · type a letter to jump · per-app show/hide hotkeys · per-app auto-quit after idling |
 | **Window overview & stash** | A grid of every window including minimized and hidden ones (4-finger swipe, double-click a screen edge, or right + side button) · middle-click to close · stash hides everything and brings it back |
 | **Shortcut gestures** | Right-drag circles and shakes, 2-finger rotation, wheel tilt: each runs a window action, Mission Control, a desktop switch, a keyboard shortcut or a Shortcuts.app shortcut |
-| **Universal** | Back / forward everywhere via 3-finger swipe or mouse side buttons, with per-app overrides · fn + swipe/scroll to jump to top or bottom · modifier + swipe/scroll as arrow keys · 3-finger click as middle click · trackpad-edge slide for brightness and volume |
-| **Control** | Exclude apps from gestures · pause while a game is in front · palm rejection · back up and restore settings · hide the menu-bar icon |
+| **Universal** | Back / forward everywhere via 3-finger swipe or mouse side buttons, with per-app overrides · fn + swipe/scroll to jump to top or bottom · modifier + swipe/scroll as arrow keys · 3-finger click as middle click · trackpad-edge slide for volume and for the brightness of the display under the pointer, external monitors included |
+| **Control** | Exclude apps from gestures · pause in macOS Game Mode · palm rejection · back up and restore settings · restart shortcut · hide the menu-bar icon |
+| **macOS settings** | Native three-finger drag · hand 3- or 4-finger swipes over from macOS in one click · alert volume · shortcuts to scroll speed |
 
 ## How it works
 
@@ -49,6 +50,19 @@ The original behaviour is on by default: click the Dock icon of the app you're a
 - **Window control** uses the Accessibility API (`AXMinimized`, `AXFullScreen`, position and size, the close button's press action), never simulated clicks on title-bar buttons.
 - **Trackpad gestures** read raw contacts from the private `MultitouchSupport` framework, loaded at runtime and only started while a trackpad feature is on.
 - **Window overview thumbnails** use ScreenCaptureKit when Screen Recording is granted. Windows are snapshotted just before Click2Minimize minimizes them, because minimized windows can't be captured later. Without the permission the overview shows app icons.
+- **Undocumented macOS interfaces**, all resolved at runtime so a missing one disables a feature instead of breaking launch:
+
+  | Interface | Used for |
+  |---|---|
+  | `MultitouchSupport` | raw trackpad contacts |
+  | `CGSSetSymbolicHotKeyEnabled` | handing ⌘⇥ to the app switcher |
+  | `CoreDockSendNotification` | Mission Control, App Exposé, Show Desktop, Launchpad |
+  | `_AXUIElementGetWindow` | window ids for thumbnails and fill / restore |
+  | `DisplayServices` | brightness of built-in and Apple displays |
+  | `IOAVService` DDC/CI | brightness of other external monitors (Apple silicon), with gamma dimming as a fallback |
+  | `OSDManager` | the native brightness HUD |
+  | `com.apple.system.game_mode_status_changed` | Game Mode pause |
+  | `activateSettings -u` | applying trackpad gesture settings live |
 - **Gesture maths** (lines, circles, shakes, snap zones, display mapping, version checks) lives in a pure Swift file covered by `./test_logic.sh`.
 
 ## Highlights
@@ -70,6 +84,7 @@ The original behaviour is on by default: click the Dock icon of the app you're a
 - **Changed**: no relaunch after granting Accessibility. The app starts working as soon as access is granted.
 - **Changed**: Settings rebuilt as a sidebar window with one page per area.
 - **Fixed**: the update check never offered updates, because `v`-prefixed tags parsed as version 0. Install now stages the new app and swaps it in atomically, instead of deleting the old one first.
+- **New**: Game Mode pause, external-monitor brightness over DDC with the native HUD, Dock Fidget on the trackpad, close-from-Mission-Control, quit-from-Stage-Manager, light-press 3-finger window drag, native trackpad settings, animated window moves, restart shortcut, snap cancel (Esc or left tap).
 - **Requires**: macOS 14 (for ScreenCaptureKit window snapshots).
 
 ## 2.1: what changed from 2.0

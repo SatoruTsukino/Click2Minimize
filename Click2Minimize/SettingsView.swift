@@ -229,7 +229,7 @@ struct GeneralPane: View {
                     Text("Show in menu bar")
                     Text("When hidden, open Settings by launching Click2Minimize again.")
                 }
-                PrefToggle(.pauseInGameMode, "Pause while a game is in front", "Suspends every feature while the frontmost app is a game.")
+                PrefToggle(.pauseInGameMode, "Pause in Game Mode", "Suspends every feature while macOS Game Mode is on or a game is in front.")
             } header: { Text("App") }
 
             Section {
@@ -286,7 +286,8 @@ struct DockPane: View {
 
             Section {
                 PrefToggle(.doubleClickToHideOthers, "Double-click an app's icon to hide all other apps")
-                PrefToggle(.middleClickToTerminate, "Middle-click an app's icon to quit it", "Also works in the app switcher.")
+                PrefToggle(.middleClickToTerminate, "Middle-click an app's icon to quit it",
+                           "Also quits apps in the app switcher and Stage Manager, and closes windows in Mission Control and App Exposé.")
                 PrefToggle(.forceKillOnTerminate, "Quit immediately without waiting",
                            "Much more responsive, but unsaved work can be lost.")
                 PrefToggle(.hoverToExpose, "Hover over an app's icon to show its windows (App Exposé)")
@@ -307,7 +308,8 @@ struct DockPane: View {
             Section {
                 PrefToggle(.lockDockToMainScreen, "Lock the Dock to the main display",
                            "Stops the Dock jumping to another display when the pointer touches its bottom edge.")
-                PrefToggle(.dockFidget, "Haptic tick when sliding across Dock icons", "Needs a Force Touch trackpad.")
+                PrefToggle(.dockFidget, "Dock Fidget",
+                           "Slide one finger sideways from the bottom edge of the trackpad to run the pointer along the Dock, revealing it if auto-hidden. Ticks on each icon (haptics need a Force Touch trackpad).")
                 Toggle(isOn: $instantAutohide) {
                     Text("Auto-hide the Dock and reveal it instantly")
                     Text("Removes the reveal delay. Restarts the Dock.")
@@ -327,8 +329,9 @@ struct DockPane: View {
 
 struct WindowsPane: View {
     @AppStorage(Pref.leftRightClickAction.rawValue) private var leftRight = WindowToggle.none.rawValue
-    @AppStorage(Pref.closeButtonKeywords.rawValue) private var keywords = "close, dismiss, ×, ✕"
+    @AppStorage(Pref.closeButtonKeywords.rawValue) private var keywords = "close, cancel, dismiss, hide, clear"
     @AppStorage(Pref.closeButtonMaxDistance.rawValue) private var maxDistance = 80.0
+    @AppStorage(Pref.closeButtonSearchDepth.rawValue) private var searchDepth = 4
     @AppStorage(Pref.middleClickCloseButton.rawValue) private var closeButton = false
 
     var body: some View {
@@ -349,6 +352,7 @@ struct WindowsPane: View {
                         Slider(value: $maxDistance, in: 20...200, step: 10) { Text("Search distance") }
                         Text("\(Int(maxDistance)) pt").monospacedDigit().frame(width: 52, alignment: .trailing)
                     }
+                    Stepper("Search depth: \(searchDepth) levels", value: $searchDepth, in: 1...10)
                 }
                 PrefToggle(.middleClickDismissNotifications, "Middle-click a notification banner to dismiss it")
             } header: { Text("Close without reaching for the red button") }
@@ -366,10 +370,7 @@ struct WindowsPane: View {
             Section {
                 PrefToggle(.middleDragToMove, "Middle-drag anywhere on a window to move it")
                 PrefToggle(.threeFingerDragToMove, "3-finger drag anywhere on a window to move it",
-                           "Needs macOS three-finger drag (Accessibility › Pointer Control › Trackpad Options). Turns off Click2Minimize's 3-finger swipes.")
-                if !Trackpad.systemThreeFingerDragEnabled {
-                    Button("Open Pointer Control Settings…") { Permissions.openPointerControlSettings() }
-                }
+                           "Press lightly with 3 fingers, then move: pressure is only needed to start. Also works with macOS three-finger drag.")
             } header: { Text("Move without reaching for the title bar") }
 
             Section {
@@ -379,7 +380,7 @@ struct WindowsPane: View {
 
             Section {
                 PrefToggle(.rightDragToSnap, "Right-drag in a direction to snap the window",
-                           "Left/right: halves. Diagonals: quarters. Up: maximize. Down: bottom half. A preview shows where it lands.")
+                           "Left/right: halves. Diagonals: quarters. Up: maximize. Down: bottom half. A preview shows where it lands; Esc or a left tap cancels.")
                 PrefToggle(.doubleRightClickTitleToNextDisplay, "Double right-click a window's title bar to move it to the next display")
                 PrefToggle(.twoFingerTopDoubleClickToNextDisplay, "Double-click with 2 fingers at the top of the trackpad to move it to the next display")
             } header: { Text("Snap & Warp") }
@@ -389,6 +390,7 @@ struct WindowsPane: View {
                            "When off, full-screen windows ignore most window gestures.")
                 PrefToggle(.suppressContextMenus, "Hold back context menus until a right-drag is ruled out",
                            "Avoids menus flashing open before gestures. Adds a tiny delay to context menus.")
+                PrefToggle(.animateWindows, "Animate window moves and resizes", "Skipped when Reduce Motion is on.")
             } header: { Text("Options") }
         }
     }
@@ -421,9 +423,7 @@ struct SwitcherPane: View {
                            "Release the button to switch. Left-click to cancel.")
                 PrefToggle(.switcherThreeFingerSwipe, "Swipe up with 3 fingers",
                            "Keep fingers down and move them to pick an app. Lift to switch, spread to cancel.")
-                if Trackpad.systemThreeFingerDragEnabled {
-                    Hint("macOS three-finger drag is on, so 3-finger swipes are disabled.")
-                }
+                GestureConflictHint()
             } header: { Text("Open the App Switcher") }
 
             Section {
@@ -445,7 +445,8 @@ struct SwitcherPane: View {
             }
 
             Section {
-                PrefToggle(.overviewFourFinger, "Swipe up / down with 4 fingers", "Change the macOS 4-finger Mission Control gesture first to avoid a clash.")
+                PrefToggle(.overviewFourFinger, "Swipe up / down with 4 fingers")
+                FourFingerConflictHint()
                 PrefToggle(.overviewScreenEdge, "Double-click the top / bottom edge of the screen")
                 PrefToggle(.overviewRightSideButtons, "Hold the right button and press a side button", "Forward: overview. Back: stash.")
                 if !screenRecording {
@@ -515,7 +516,8 @@ struct UniversalPane: View {
         Form {
             Section {
                 PrefToggle(.universalNavigation, "Back / forward in every app",
-                           "Swipe left / right with 3 fingers, or press the mouse's side buttons. Sends ⌘[ and ⌘] unless an app has its own shortcuts below.")
+                           "Swipe left / right with 3 fingers, or press the mouse's side buttons. Sends ⌘[ and ⌘] unless an app has its own shortcuts below. Blender, Figma, Fusion 360, AutoCAD and SketchUp are left alone.")
+                GestureConflictHint()
                 ForEach(overrides.keys.sorted(), id: \.self) { id in
                     HStack {
                         AppLabel(bundleID: id)
@@ -545,7 +547,7 @@ struct UniversalPane: View {
                 PrefToggle(.threeFingerClickToMiddle, "3-finger click acts as a middle click",
                            "Lets trackpad users use every middle-click feature.")
                 PrefToggle(.edgeSlide, "Slide along the trackpad edge to change brightness / volume",
-                           "Rest one finger in the middle, slide another along the left edge (brightness) or right edge (volume).")
+                           "Rest one finger in the middle, slide another along the left edge (brightness of the display under the pointer, external monitors included) or the right edge (volume).")
             } header: { Text("Trackpad") }
         }
     }
@@ -557,6 +559,7 @@ struct AdvancedPane: View {
     @AppStorage(Pref.palmThreshold.rawValue) private var palm = 14.0
     @State private var excluded = Pref.excludedApps.strings
     @State private var status: String?
+    @CodablePref(.restartShortcut, default: nil) private var restartShortcut: KeyShortcut?
 
     var body: some View {
         Form {
@@ -590,6 +593,15 @@ struct AdvancedPane: View {
                 Text("The largest touch treated as a fingertip. Lower it if your palm triggers gestures.")
                     .font(.callout).foregroundStyle(.secondary)
             } header: { Text("Trackpad") }
+
+            NativeSettingsSection()
+
+            Section {
+                LabeledContent("Restart shortcut") {
+                    ShortcutRecorder(shortcut: $restartShortcut)
+                }
+                Button("Restart Click2Minimize") { Updater.relaunchApp() }
+            } header: { Text("Restart") }
 
             Section {
                 HStack {
@@ -641,5 +653,75 @@ struct AdvancedPane: View {
         guard confirm.runModal() == .alertFirstButtonReturn else { return }
         Pref.allCases.forEach { UserDefaults.standard.removeObject(forKey: $0.rawValue) }
         Updater.relaunchApp()
+    }
+}
+
+// MARK: - System gesture conflicts and native settings
+
+/// Shown when macOS still owns 3-finger swipes that Click2Minimize uses.
+struct GestureConflictHint: View {
+    @State private var refresh = 0
+    var body: some View {
+        let _ = refresh
+        if SystemTrackpad.threeFingerDrag || SystemTrackpad.threeFingerSwipesUsedBySystem {
+            HStack {
+                Hint(SystemTrackpad.threeFingerDrag
+                     ? "macOS three-finger drag is on, so 3-finger swipes are off."
+                     : "macOS also uses 3-finger swipes, so both will react.")
+                Spacer()
+                Button("Hand to Click2Minimize") { SystemTrackpad.handThreeFingerSwipesToClick2Minimize(); refresh += 1 }
+            }
+        }
+    }
+}
+
+struct FourFingerConflictHint: View {
+    @State private var refresh = 0
+    var body: some View {
+        let _ = refresh
+        if SystemTrackpad.fourFingerVerticalUsedBySystem {
+            HStack {
+                Hint("macOS uses 4-finger up / down for Mission Control too.")
+                Spacer()
+                Button("Hand to Click2Minimize") { SystemTrackpad.handFourFingerVerticalToClick2Minimize(); refresh += 1 }
+            }
+        }
+    }
+}
+
+struct NativeSettingsSection: View {
+    @State private var threeFingerDrag = SystemTrackpad.threeFingerDrag
+    @State private var alertVolume = 100.0
+
+    var body: some View {
+        Section {
+            Toggle(isOn: $threeFingerDrag) {
+                Text("Native three-finger drag")
+                Text("Drag with three fingers on a title bar to move a window. Conflicts with Click2Minimize's 3-finger swipes: turning it on turns them off.")
+            }
+            .onChange(of: threeFingerDrag) { _, on in
+                guard on != SystemTrackpad.threeFingerDrag else { return }
+                SystemTrackpad.setThreeFingerDrag(on)
+                if on { [Pref.threeFingerSwipeDownToMinimize, .switcherThreeFingerSwipe].forEach { $0.set(false) } }
+            }
+            LabeledContent("Alert volume (beep)") {
+                Slider(value: $alertVolume, in: 0...100, step: 5) { Text("Alert volume") } onEditingChanged: { editing in
+                    if !editing { AlertVolume.set(alertVolume) }
+                }
+                Text("\(Int(alertVolume))%").monospacedDigit().frame(width: 44, alignment: .trailing)
+            }
+            LabeledContent("Scroll speed for mouse & trackpad") {
+                HStack {
+                    Button("Mouse…") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Mouse-Settings.extension")!) }
+                    Button("Trackpad…") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Trackpad-Settings.extension")!) }
+                }
+            }
+            Text("For the most responsive gestures, set both tracking and scrolling speed high.")
+                .font(.callout).foregroundStyle(.secondary)
+        } header: { Text("macOS Native Settings") }
+        .onAppear {
+            threeFingerDrag = SystemTrackpad.threeFingerDrag
+            AlertVolume.read { alertVolume = $0 }
+        }
     }
 }

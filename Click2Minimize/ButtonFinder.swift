@@ -19,7 +19,7 @@ enum ButtonFinder {
         guard !words.isEmpty, var root = AX.element(at: p) else { return false }
         if AX.pid(root) == ProcessInfo.processInfo.processIdentifier { return false }
         // Climb a few levels so siblings of the clicked element are searched too.
-        for _ in 0..<4 {
+        for _ in 0..<max(1, Pref.closeButtonSearchDepth.int) {
             guard let parent = AX.parent(root), AX.role(parent) != kAXApplicationRole else { break }
             root = parent
         }

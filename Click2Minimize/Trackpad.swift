@@ -127,6 +127,25 @@ final class Trackpad {
     var pinchTarget: AXUIElement? {
         didSet { lastPinchSpan = nil }
     }
+
+    /// Window moved by the fingers themselves after a light 3-finger press:
+    /// pressure is only needed to start, not while moving.
+    private var moveTarget: AXUIElement?
+    private var moveLastCentroid: (Float, Float)?
+    private var moveStarted = false
+
+    func beginWindowMove(_ w: AXUIElement) {
+        moveTarget = w
+        moveLastCentroid = nil
+        moveStarted = false
+        pinchTarget = Pref.threeFingerPinchToResize.bool ? w : nil
+    }
+
+    private func endWindowMove() {
+        guard moveTarget != nil else { return }
+        moveTarget = nil
+        pinchTarget = nil
+    }
     private var lastPinchSpan: Float?
     private var lastPinchTime = Date.distantPast
 
@@ -144,6 +163,8 @@ final class Trackpad {
         var edgeFinger: Int32?
         var edgeIsLeft = false
         var edgeLastY: Float = 0
+        var dockArmed = false
+        var dockActive = false
     }
 
     private var session = Session()
@@ -185,12 +206,18 @@ final class Trackpad {
             session.startAngle = Self.angle(t)
             if Pref.edgeSlide.bool { armEdgeSlide(t) }
         }
+        // Dock Fidget: a single finger starting on the bottom edge.
+        if t.count == 1, Pref.dockFidget.bool, t[0].y < 0.08, !EventRouter.shared.gesturesBlocked {
+            session.dockArmed = true
+        }
     }
 
     private func endSession(newCount: Int = 0) {
         if session.switcherAnchorY != nil, AppSwitcher.shared.activeTrigger == .swipe {
             if newCount > 3 { AppSwitcher.shared.cancel() } else if newCount < 3 { AppSwitcher.shared.commit() }
         }
+        if session.count == 3, newCount < 3 { endWindowMove() }
+        if session.dockActive { DockController.shared.endTrackpadControl() }
         edgeSlideActive = false
     }
 
@@ -200,9 +227,16 @@ final class Trackpad {
         session.travel = max(session.travel, hypotf(dx, dy))
 
         switch t.count {
+        case 1:
+            updateDockFidget(t[0], dx: dx)
         case 2:
             if edgeSlideActive { updateEdgeSlide(t) } else { detectRotation(t, c) }
         case 3:
+            if let w = moveTarget {
+                moveWindow(w, c)
+                if let p = pinchTarget { pinch(p, t, c) }
+                return // moving a window is never a swipe
+            }
             if let w = pinchTarget { pinch(w, t, c); return }
             if session.switcherAnchorY != nil { scrollSwitcher(t, c); return }
             detectThreeFingerSwipe(dx: dx, dy: dy, t, c)
@@ -217,10 +251,10 @@ final class Trackpad {
 
     // MARK: Three-finger swipes
 
-    /// 3-finger swipes are off while 3-finger drag is in use (ours or the system's):
-    /// every drag would otherwise also read as a swipe.
+    /// 3-finger swipes are off while the system's three-finger drag is on (every
+    /// drag would also read as a swipe) and while a button is pressed.
     private var threeFingerSwipesAllowed: Bool {
-        !Pref.threeFingerDragToMove.bool && !Self.systemThreeFingerDragEnabled
+        !SystemTrackpad.threeFingerDrag && NSEvent.pressedMouseButtons == 0
     }
 
     private func detectThreeFingerSwipe(dx: Float, dy: Float, _ t: [Touch], _ c: (Float, Float)) {
@@ -248,7 +282,7 @@ final class Trackpad {
             session.fired = true
             AppSwitcher.shared.show(trigger: .swipe)
             session.switcherAnchorY = c.1
-        } else if horizontal, Pref.universalNavigation.bool {
+        } else if horizontal, ActionRunner.universalNavigationApplies {
             session.fired = true
             ActionRunner.navigate(back: dx < 0)
         }
@@ -264,6 +298,20 @@ final class Trackpad {
             AppSwitcher.shared.move(delta > 0 ? 1 : -1)
             session.switcherAnchorY = anchor - (delta > 0 ? step : -step)
         }
+    }
+
+    private func moveWindow(_ w: AXUIElement, _ c: (Float, Float)) {
+        defer { moveLastCentroid = c }
+        guard let last = moveLastCentroid else { return }
+        // Map the trackpad's width to roughly a screen width; its height is ~1/1.55 of that.
+        let width = Float(NSScreen.main?.frame.width ?? 1440)
+        let dx = (c.0 - last.0) * width, dy = -(c.1 - last.1) * width / 1.55
+        guard abs(dx) + abs(dy) >= 1, let frame = AX.frame(w) else { return }
+        if !moveStarted {
+            moveStarted = true
+            EventRouter.shared.threeFingerMoveBegan()
+        }
+        AX.setPosition(w, CGPoint(x: frame.minX + CGFloat(dx), y: frame.minY + CGFloat(dy)))
     }
 
     private func pinch(_ w: AXUIElement, _ t: [Touch], _ c: (Float, Float)) {
@@ -312,18 +360,27 @@ final class Trackpad {
         guard abs(dy) >= step else { return }
         session.edgeLastY += dy > 0 ? step : -step
         if session.edgeIsLeft {
-            Synth.media(dy > 0 ? .brightnessUp : .brightnessDown)
+            DisplayControl.stepBrightness(up: dy > 0, at: Synth.cursor)
         } else {
             Synth.media(dy > 0 ? .soundUp : .soundDown)
         }
         NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
     }
 
-    // MARK: System settings
+    // MARK: Dock Fidget
 
-    static var systemThreeFingerDragEnabled: Bool {
-        ["com.apple.AppleMultitouchTrackpad", "com.apple.driver.AppleBluetoothMultitouch.trackpad"].contains {
-            UserDefaults(suiteName: $0)?.bool(forKey: "TrackpadThreeFingerDrag") ?? false
+    /// Sliding sideways from the bottom edge takes over the pointer and runs it
+    /// along the Dock (revealing an auto-hidden Dock), with a haptic tick per icon.
+    private func updateDockFidget(_ touch: Touch, dx: Float) {
+        if session.dockActive {
+            DockController.shared.trackpadControl(x: touch.x)
+            return
+        }
+        guard session.dockArmed else { return }
+        if touch.y > 0.2 { session.dockArmed = false; return }
+        if abs(dx) > 0.04, touch.y < 0.15 {
+            session.dockArmed = false
+            session.dockActive = DockController.shared.beginTrackpadControl()
         }
     }
 }

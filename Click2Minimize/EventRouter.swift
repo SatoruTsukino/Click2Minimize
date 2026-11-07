@@ -21,7 +21,7 @@ final class EventRouter {
     func refreshPauseState() {
         let app = NSWorkspace.shared.frontmostApplication
         frontmostExcluded = app?.bundleIdentifier.map { Pref.excludedApps.strings.contains($0) } ?? false
-        isPaused = Pref.pauseInGameMode.bool && (app.map(Self.isGame) ?? false)
+        isPaused = Pref.pauseInGameMode.bool && (GameMode.isActive || (app.map(Self.isGame) ?? false))
     }
 
     private static func isGame(_ app: NSRunningApplication) -> Bool {
@@ -72,6 +72,8 @@ final class EventRouter {
     private var right = ButtonTrack()
     private var middle = ButtonTrack()
     private var middleSimulated = false   // current middle press comes from a 3-finger click
+    private var threeFingerHeldLeft: CGEvent? // 3-finger click held back while we see if the fingers move
+    private var threeFingerMoving = false
     private var leftDragWindow: AXUIElement?
     private var leftDragOrigin = CGPoint.zero
     private var leftDragStart = CGPoint.zero
@@ -97,7 +99,7 @@ final class EventRouter {
         let consumed: Bool
         switch type {
         case .keyDown, .keyUp, .flagsChanged:
-            consumed = AppSwitcher.shared.handleKey(type, event)
+            consumed = handleKey(type, event) || AppSwitcher.shared.handleKey(type, event)
         case .mouseMoved:
             DockController.shared.handleMouseMoved(event.location)
             consumed = false
@@ -114,11 +116,39 @@ final class EventRouter {
         return consumed ? nil : pass
     }
 
+    // MARK: Keys
+
+    private func handleKey(_ type: CGEventType, _ e: CGEvent) -> Bool {
+        guard type == .keyDown else { return false }
+        if right.dragging, Int(e.getIntegerValueField(.keyboardEventKeycode)) == kVK_Escape {
+            cancelRightDrag()
+            return true
+        }
+        if let restart = Pref.restartShortcut.decoded(KeyShortcut.self), restart.matches(e) {
+            DispatchQueue.main.async { Updater.relaunchApp() }
+            return true
+        }
+        return false
+    }
+
+    /// Esc or a left tap during a right-drag cancels the gesture (and the snap).
+    private func cancelRightDrag() {
+        SnapOverlay.shared.hide()
+        right.consumed = true
+        right.dragging = false
+    }
+
     // MARK: Left button
 
     private func leftDown(_ e: CGEvent) -> Bool {
         let p = e.location
         if AppSwitcher.shared.isVisible { return AppSwitcher.shared.handleClick(at: p) }
+
+        if right.down, right.dragging {
+            cancelRightDrag()
+            discardLeftUp = true
+            return true
+        }
 
         if right.down, Pref.rightLeftClickToMinimize.bool, !gesturesBlocked {
             if let w = AX.window(at: p) { WindowOps.withWindow(w) { WindowOps.minimize($0) } }
@@ -136,10 +166,19 @@ final class EventRouter {
                 if Pref.threeFingerPinchToResize.bool { Trackpad.shared.pinchTarget = w }
                 return true
             }
-            if Pref.threeFingerClickToMiddle.bool, !Trackpad.shared.threeFingerMoved,
-               let m = Synth.mouse(.otherMouseDown, at: p, button: .center, template: e) {
-                middleSimulated = true
-                if !other(.otherMouseDown, m) { Synth.post(m) }
+            // A light 3-finger press: move the window with the fingers, or act as a middle click.
+            let move = Pref.threeFingerDragToMove.bool, middle = Pref.threeFingerClickToMiddle.bool
+            if (move || middle), !Trackpad.shared.threeFingerMoved {
+                threeFingerMoving = false
+                if move, let w = AX.window(at: p), !AX.isFullscreen(w) { Trackpad.shared.beginWindowMove(w) }
+                if middle && !move, let m = Synth.mouse(.otherMouseDown, at: p, button: .center, template: e) {
+                    // Middle press right away, so middle-drag / middle-scroll features work too.
+                    middleSimulated = true
+                    if !other(.otherMouseDown, m) { Synth.post(m) }
+                } else {
+                    // Decide at release: a move, a middle click, or an ordinary click.
+                    threeFingerHeldLeft = e.copy()
+                }
                 return true
             }
         }
@@ -181,7 +220,7 @@ final class EventRouter {
             if !other(.otherMouseDragged, m) { Synth.post(m) }
             return true
         }
-        return discardLeftUp
+        return discardLeftUp || middleSimulated || threeFingerHeldLeft != nil
     }
 
     private func leftUp(_ e: CGEvent) -> Bool {
@@ -195,11 +234,30 @@ final class EventRouter {
             if !other(.otherMouseUp, m) { Synth.post(m) }
             return true
         }
+        if let held = threeFingerHeldLeft {
+            threeFingerHeldLeft = nil
+            guard !threeFingerMoving else { return true }
+            if Pref.threeFingerClickToMiddle.bool {
+                for type in [CGEventType.otherMouseDown, .otherMouseUp] {
+                    if let m = Synth.mouse(type, at: held.location, button: .center, template: held), !other(type, m) { Synth.post(m) }
+                }
+            } else if let up = e.copy() {
+                Synth.replay(held) // the fingers never moved: an ordinary click after all
+                Synth.post(up)
+            }
+            return true
+        }
         if discardLeftUp {
             discardLeftUp = false
             return true
         }
         return false
+    }
+
+    /// Called by the trackpad once a 3-finger press starts moving a window:
+    /// the press is no longer a click.
+    func threeFingerMoveBegan() {
+        threeFingerMoving = true
     }
 
     // MARK: Right button
@@ -406,7 +464,7 @@ final class EventRouter {
             if button == 4 { WindowOverview.shared.toggle() } else { Stash.toggle() }
             return true
         }
-        if Pref.universalNavigation.bool, !gesturesBlocked {
+        if ActionRunner.universalNavigationApplies, !gesturesBlocked {
             discardOtherUp.insert(button)
             ActionRunner.navigate(back: button == 3)
             return true
@@ -458,6 +516,10 @@ final class EventRouter {
         if WindowOverview.shared.isVisible { return WindowOverview.shared.closeHovered() }
         if AppSwitcher.shared.isVisible { return AppSwitcher.shared.terminateEntry(at: p) }
         if DockController.shared.handleMiddleClick(at: p) { return true }
+        if Pref.middleClickToTerminate.bool,
+           DockController.shared.closeMissionControlWindow(at: p) || DockController.shared.terminateStageManagerApp(at: p) {
+            return true
+        }
         if gesturesBlocked { return false }
         if Pref.middleClickDismissNotifications.bool, ButtonFinder.dismissNotification(at: p) { return true }
         if Pref.middleClickCloseButton.bool, ButtonFinder.pressNearbyButton(at: p) { return true }

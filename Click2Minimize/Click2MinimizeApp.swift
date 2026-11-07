@@ -19,6 +19,7 @@ struct Click2MinimizeApp: App {
             Divider()
             Button("Accessibility Settings…") { Permissions.openAccessibilitySettings() }
             Divider()
+            Button("Restart Click2Minimize") { Updater.relaunchApp() }
             Button("Quit Click2Minimize") { NSApp.terminate(nil) }.keyboardShortcut("q")
         }
     }
@@ -35,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if Pref.launchAtLogin.bool { LoginItem.set(true) }
 
         AppSwitcher.shared.start()
+        GameMode.start { EventRouter.shared.refreshPauseState() }
         observeSystem()
         startWhenTrusted()
         Updater.check(interactive: false)
@@ -49,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         SystemPrivate.setNativeCommandTab(enabled: true)
+        DisplayControl.restoreGamma()
     }
 
     private func startWhenTrusted() {
@@ -121,10 +124,6 @@ enum Permissions {
 
     static func openScreenRecordingSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
-    }
-
-    static func openPointerControlSettings() {
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Accessibility-Settings.extension?Pointer")!)
     }
 
     static func requestScreenRecording() {

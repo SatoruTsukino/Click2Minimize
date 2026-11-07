@@ -148,6 +148,91 @@ final class DockController {
         return true
     }
 
+    // MARK: Mission Control, App Exposé and Stage Manager
+
+    /// Middle-clicking a window thumbnail in Mission Control / App Exposé closes
+    /// that window. The thumbnails belong to the Dock process and carry the
+    /// window's title, which is matched against the apps' real windows.
+    func closeMissionControlWindow(at p: CGPoint) -> Bool {
+        guard let dock = dockPID, let el = AX.element(at: p), AX.pid(el) == dock,
+              !AX.subrole(el).hasSuffix("DockItem") else { return false }
+        let title = (AX.get(el, kAXTitleAttribute) as String?).flatMap { $0.isEmpty ? nil : $0 }
+            ?? AX.get(el, kAXDescriptionAttribute) ?? ""
+        guard !title.isEmpty else { return false }
+        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+            if let w = AX.windows(app.processIdentifier).first(where: { AX.title($0) == title }) {
+                WindowOps.close(w)
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Middle-clicking an app in the Stage Manager strip quits it.
+    func terminateStageManagerApp(at p: CGPoint) -> Bool {
+        guard Self.isStageManagerOn, var el = AX.element(at: p),
+              NSRunningApplication(processIdentifier: AX.pid(el))?.bundleIdentifier == "com.apple.WindowManager" else { return false }
+        let apps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
+        for _ in 0..<6 {
+            let label = [AX.get(el, kAXTitleAttribute) as String?, AX.get(el, kAXDescriptionAttribute) as String?]
+                .compactMap { $0 }.joined(separator: " ")
+            if !label.isEmpty, let app = apps.first(where: { $0.localizedName.map(label.contains) ?? false }) {
+                ActionRunner.terminate(app)
+                return true
+            }
+            guard let parent = AX.parent(el) else { break }
+            el = parent
+        }
+        return false
+    }
+
+    // MARK: Dock Fidget (trackpad control)
+
+    /// Frame of the Dock's icon list, or nil while it is hidden off-screen.
+    func iconListFrame() -> CGRect? {
+        guard let dock = dockPID,
+              let list = AX.children(AX.application(dock)).first(where: { AX.role($0) == kAXListRole }),
+              let frame = AX.frame(list), frame.width > 0 else { return nil }
+        let onScreen = NSScreen.screens.contains { ScreenGeometry.toGlobal($0.frame).insetBy(dx: 1, dy: 1).intersects(frame) }
+        return onScreen ? frame : nil
+    }
+
+    private var controlFrame: CGRect?
+
+    /// Detaches the pointer from the trackpad and parks it on the Dock edge,
+    /// which also reveals an auto-hidden Dock.
+    func beginTrackpadControl() -> Bool {
+        guard let main = NSScreen.screens.first else { return false }
+        let f = ScreenGeometry.toGlobal(main.frame)
+        let cursor = Synth.cursor
+        let edge: CGPoint
+        switch Self.orientation {
+        case "left": edge = CGPoint(x: f.minX, y: cursor.y)
+        case "right": edge = CGPoint(x: f.maxX - 1, y: cursor.y)
+        default: edge = CGPoint(x: f.midX, y: f.maxY - 1)
+        }
+        CGAssociateMouseAndMouseCursorPosition(0)
+        CGWarpMouseCursorPosition(edge)
+        controlFrame = nil
+        return true
+    }
+
+    /// Maps the finger's horizontal position across the Dock's icons.
+    func trackpadControl(x: Float) {
+        if controlFrame == nil { controlFrame = iconListFrame() }
+        guard let f = controlFrame else { return }
+        let t = CGFloat(max(0, min(1, (x - 0.1) / 0.8)))
+        let vertical = Self.orientation == "left" || Self.orientation == "right"
+        let p = vertical ? CGPoint(x: f.midX, y: f.minY + t * f.height) : CGPoint(x: f.minX + t * f.width, y: f.midY)
+        CGWarpMouseCursorPosition(p)
+        handleMouseMoved(p)
+    }
+
+    func endTrackpadControl() {
+        controlFrame = nil
+        CGAssociateMouseAndMouseCursorPosition(1)
+    }
+
     // MARK: Pointer movement
 
     private var hoveredTitle: String?

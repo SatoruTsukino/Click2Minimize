@@ -62,6 +62,19 @@ struct NavigationOverride: Codable, Equatable {
 }
 
 enum ActionRunner {
+    /// Apps that use the side buttons and sideways swipes themselves (CAD and
+    /// design tools), so universal navigation leaves them alone.
+    static let navigationExcludedApps: Set<String> = [
+        "org.blenderfoundation.blender", "com.figma.Desktop", "com.autodesk.mas.fusion360",
+        "com.autodesk.fusion360", "com.autodesk.AutoCAD", "com.sketchup.SketchUp",
+    ]
+
+    static var universalNavigationApplies: Bool {
+        guard Pref.universalNavigation.bool else { return false }
+        guard let id = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return true }
+        return !navigationExcludedApps.contains(id)
+    }
+
     /// Performs an action. `point` targets the window under it; otherwise the focused window.
     static func perform(_ action: GestureAction, at point: CGPoint? = nil) {
         let window = { point.flatMap(AX.window(at:)) ?? AX.focusedWindow() }

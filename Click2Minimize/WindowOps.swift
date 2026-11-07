@@ -85,20 +85,17 @@ enum WindowOps {
         let target = ScreenGeometry.visibleFrame(screen)
         let id = AX.windowID(w)
         if GestureMath.roughlyEqual(frame, target), let id, let original = framesBeforeFill.removeValue(forKey: id) {
-            AX.setFrame(w, original)
+            animate(w, to: original)
             return
         }
         if let id { framesBeforeFill[id] = frame }
-        AX.setFrame(w, target)
-        if let actual = AX.frame(w), !GestureMath.roughlyEqual(actual, target, tolerance: 40) {
-            log.debug("fill: app constrained the window size")
-        }
+        animate(w, to: target)
     }
 
     static func snap(_ w: AXUIElement, to zone: SnapZone) {
         guard let frame = AX.frame(w), let screen = ScreenGeometry.screen(for: frame) else { return }
         if let id = AX.windowID(w), framesBeforeFill[id] == nil { framesBeforeFill[id] = frame }
-        AX.setFrame(w, zone.frame(in: ScreenGeometry.visibleFrame(screen)))
+        animate(w, to: zone.frame(in: ScreenGeometry.visibleFrame(screen)))
     }
 
     static func snapTarget(for w: AXUIElement, zone: SnapZone) -> CGRect? {
@@ -115,7 +112,38 @@ enum WindowOps {
         let next = screens[(i + 1) % screens.count]
         let target = GestureMath.relocate(frame, from: ScreenGeometry.visibleFrame(current),
                                           to: ScreenGeometry.visibleFrame(next))
-        AX.setFrame(w, target)
+        animate(w, to: target)
+    }
+
+    // MARK: Animation
+
+    private static var animations: [CGWindowID: Timer] = [:]
+
+    /// Moves / resizes a window with a short ease-out, unless animations are
+    /// off or the system asks for reduced motion.
+    static func animate(_ w: AXUIElement, to target: CGRect) {
+        guard Pref.animateWindows.bool, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+              let from = AX.frame(w), let id = AX.windowID(w) else {
+            AX.setFrame(w, target)
+            return
+        }
+        animations[id]?.invalidate()
+        let start = Date(), duration = 0.18
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { t in
+            let progress = min(1, Date().timeIntervalSince(start) / duration)
+            guard progress < 1 else {
+                t.invalidate()
+                animations[id] = nil
+                AX.setFrame(w, target)
+                return
+            }
+            let e = CGFloat(1 - pow(1 - progress, 3))
+            func mix(_ a: CGFloat, _ b: CGFloat) -> CGFloat { (a + (b - a) * e).rounded() }
+            AX.setPosition(w, CGPoint(x: mix(from.minX, target.minX), y: mix(from.minY, target.minY)))
+            AX.setSize(w, CGSize(width: mix(from.width, target.width), height: mix(from.height, target.height)))
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        animations[id] = timer
     }
 
     static func scale(_ w: AXUIElement, by factor: CGFloat) {

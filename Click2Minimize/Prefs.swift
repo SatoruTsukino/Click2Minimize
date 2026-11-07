@@ -11,6 +11,7 @@ enum Pref: String, CaseIterable {
     case pauseInGameMode
     case excludedApps                // [String] bundle IDs that skip gestures
     case palmThreshold               // max touch major axis treated as a fingertip
+    case restartShortcut             // JSON KeyShortcut
 
     // Dock
     case dockClickAction             // DockClickAction raw value
@@ -32,6 +33,8 @@ enum Pref: String, CaseIterable {
     case middleClickCloseButton
     case closeButtonKeywords
     case closeButtonMaxDistance
+    case closeButtonSearchDepth
+    case animateWindows
     case rightDragUpToFullscreen
     case doubleRightClickToFill
     case leftRightClickAction        // WindowToggle raw value
@@ -76,10 +79,11 @@ enum Pref: String, CaseIterable {
 
     var defaultValue: Any? {
         switch self {
-        case .clickToMinimize, .showInMenuBar, .exitFullscreenBeforeGestures: return true
+        case .clickToMinimize, .showInMenuBar, .exitFullscreenBeforeGestures, .animateWindows: return true
+        case .closeButtonSearchDepth: return 4
         case .palmThreshold: return 14.0
         case .dockClickAction: return DockClickAction.minimizeAll.rawValue
-        case .closeButtonKeywords: return "close, dismiss, ×, ✕"
+        case .closeButtonKeywords: return "close, cancel, dismiss, hide, clear"
         case .closeButtonMaxDistance: return 80.0
         case .leftRightClickAction: return WindowToggle.none.rawValue
         case .switcherMaxRows: return 10
@@ -92,7 +96,7 @@ enum Pref: String, CaseIterable {
     }
 
     static let codableKeys: Set<Pref> = [
-        .appShortcuts, .appAutoQuitMinutes, .navigationOverrides,
+        .appShortcuts, .appAutoQuitMinutes, .navigationOverrides, .restartShortcut,
         .drawCircleClockwise, .drawCircleCounterClockwise, .drawShakeHorizontal, .drawShakeVertical,
         .rotateClockwise, .rotateCounterClockwise, .tiltLeft, .tiltRight,
     ]

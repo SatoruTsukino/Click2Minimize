@@ -25,6 +25,8 @@
 		698B5C7C5310ECDECF17BAED /* WindowOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82C8B3965205FC09E83D8B6D /* WindowOverview.swift */; };
 		7CCBA82B76793BBBA26D5820 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C628FFAF90BF6F485087D15 /* Updater.swift */; };
 		C24299D89D285E985C089C0F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 344231C687A1F4BDC84AE838 /* SettingsView.swift */; };
+		D9EF8880CAA8B55495D02BDB /* SystemIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74310EF8D1BE0F9A8645363 /* SystemIntegration.swift */; };
+		3E4041F5B8493CDB30B45339 /* DisplayControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E32D2FFAA2851697D312AD /* DisplayControl.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +51,8 @@
 		82C8B3965205FC09E83D8B6D /* WindowOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOverview.swift; sourceTree = "<group>"; };
 		4C628FFAF90BF6F485087D15 /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
 		344231C687A1F4BDC84AE838 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		D74310EF8D1BE0F9A8645363 /* SystemIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemIntegration.swift; sourceTree = "<group>"; };
+		86E32D2FFAA2851697D312AD /* DisplayControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControl.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +103,8 @@
 				82C8B3965205FC09E83D8B6D /* WindowOverview.swift */,
 				4C628FFAF90BF6F485087D15 /* Updater.swift */,
 				344231C687A1F4BDC84AE838 /* SettingsView.swift */,
+				D74310EF8D1BE0F9A8645363 /* SystemIntegration.swift */,
+				86E32D2FFAA2851697D312AD /* DisplayControl.swift */,
 				21B19A082D009C6E00EA628D /* Info.plist */,
 				21B199F62CFF981D00EA628D /* Assets.xcassets */,
 				21B199FB2CFF981D00EA628D /* Click2Minimize.entitlements */,
@@ -183,6 +189,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3E4041F5B8493CDB30B45339 /* DisplayControl.swift in Sources */,
+				D9EF8880CAA8B55495D02BDB /* SystemIntegration.swift in Sources */,
 				4D195383318B937DD784BBEE /* Click2MinimizeApp.swift in Sources */,
 				3E8B86F3B63AB698EE91D42A /* Prefs.swift in Sources */,
 				4E01000AC2B535B0DEBA580A /* Input.swift in Sources */,
