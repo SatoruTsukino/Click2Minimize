@@ -1,0 +1,121 @@
+<title>Toolbelt Hand Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=JetBrains+Mono&display=swap">
+<style>
+/* Layout: single narrow column of step groups, each row = state toggle + text + note */
+:root{--bg:#f6f7f9;--panel:#ffffff;--fg:#1b1f27;--muted:#5d6675;--line:#dde1e8;--accent:#2e4fd6;--pass:#1f8a4c;--fail:#c2362b;
+--display:"Space Grotesk",system-ui,sans-serif;--body:Inter,system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141a;--panel:#1b1e26;--fg:#e7eaf0;--muted:#97a0b0;--line:#2c313c;--accent:#7d95ff;--pass:#4cc27e;--fail:#ff7468;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12141a;--panel:#1b1e26;--fg:#e7eaf0;--muted:#97a0b0;--line:#2c313c;--accent:#7d95ff;--pass:#4cc27e;--fail:#ff7468;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+h1{font-family:var(--display);font-size:1.7rem;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-size:1.05rem;margin:0 0 6px}
+.sub{color:var(--muted);margin:4px 0 0}
+.summary{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:.9rem}
+.summary b{font-weight:600}.p{color:var(--pass)}.f{color:var(--fail)}
+.status{font-size:.8rem;color:var(--muted)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.row{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.txt{min-width:0}.txt .id{font-family:var(--mono);font-size:.78rem;color:var(--muted);margin-right:6px}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;height:30px}
+.seg button{font:inherit;font-size:.78rem;border:0;background:transparent;color:var(--muted);padding:0 9px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"].pass{background:var(--pass);color:#fff}
+.seg button[aria-pressed="true"].fail{background:var(--fail);color:#fff}
+.seg button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+textarea{grid-column:2;font:inherit;font-size:.85rem;width:100%;box-sizing:border-box;min-height:34px;resize:vertical;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.row.failed textarea{border-color:var(--fail)}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Toolbelt hand test</h1>
+    <p class="sub">Mark each check Pass or Fail. Add a note for anything that fails. Claude reads your results from here.</p>
+  </header>
+  <div class="summary"><span><b class="p" id="np">0</b> pass</span><span><b class="f" id="nf">0</b> fail</span><span><b id="nt">0</b> to go</span><span class="status" id="status">Connecting…</span></div>
+  <div id="list"></div>
+</div>
+<script>
+const STEPS=[
+ ["Round 3 retest",[
+  ["R3.1","Quit and reopen a playing browser (Toolbelt stays running): it reappears in the list with its saved volume"],
+  ["R3.2","Start audio in an app that was silent: it appears in the menu within about a second"],
+  ["R3.3","Pause and resume audio: the app leaves and comes back without reopening Toolbelt"],
+  ["R3.4","Menu closed, normal use (clicking, typing): top mostly 0.0% CPU"],
+  ["R3.5","Dock click still minimizes/hides (smaller hit band)"]]],
+ ["Round 2 retest (quit Fader first: it taps audio too)",[
+  ["R2.1","Shelf opens in Stack view: items are piled; one click selects all; one drag takes all and the shelf closes"],
+  ["R2.2","A single item fills the shelf (any view)"],
+  ["R2.3","Grid and List buttons in the header switch views; List shows sizes"],
+  ["R2.4","Drag one item out (Grid/List): it leaves the shelf"],
+  ["R2.5","Convert something: the result appears in the shelf, nothing new appears next to the original"],
+  ["R2.6","Volume: open twice with open /Applications/Toolbelt.app — only one copy runs, no echo"],
+  ["R2.7","Quit and reopen a playing app: it reappears in the list with its saved volume; menu stays responsive"],
+  ["R2.8","Apps appear quickly when the menu opens"],
+  ["R2.9","Slider near 100% snaps to 100%"],
+  ["R2.10","Menu closed, nothing tapped: top shows 0.0% CPU"]]],
+ ["Dock click (needs Accessibility)",[
+  ["3.1","Click the Dock icon of the app you're in: its windows minimize"],
+  ["3.2","Click the icon again: a window comes back"],
+  ["3.3","Switch to “Hide app”, repeat: the app hides, then returns on the next click"],
+  ["3.4","Inactive app, Trash, or a full-screen app: normal macOS behaviour"]]],
+ ["Shake shelf",[
+  ["4.1","Drag a Finder file and shake: shelf opens under the pointer, focus stays put"],
+  ["4.2","Drop a file, a Safari image, and selected text: all appear"],
+  ["4.3","Drag one item to the Desktop: it is copied"],
+  ["4.4","Drag the stack icon: all items go out and the shelf closes"],
+  ["4.5","Select an item and press Space: Quick Look opens"],
+  ["4.6","Right-click: Show in Finder and Remove From Shelf work"]]],
+ ["Convert (right-click shelf items)",[
+  ["5.1","HEIC or PNG: Convert to JPEG, Compress, Resize 50% create new files"],
+  ["5.2","A .mov: Convert to MP4, Shrink to 720p, Remove Audio work"],
+  ["5.3","Optional, with ffmpeg installed: ffmpeg formats (e.g. GIF) appear for video"]]],
+ ["Volume (needs System Audio Recording)",[
+  ["6.1","Music and a browser playing: both listed, meters move"],
+  ["6.2","Slider to 30%, then 150%: change is heard straight away"],
+  ["6.3","Mute one app: it goes silent, others unchanged"],
+  ["6.4","Quit and reopen that app: its volume is kept"],
+  ["6.5","Switch output (e.g. AirPods) while playing: volume still applies"]]],
+ ["Footprint",[
+  ["7.1","top shows 0% CPU at idle; small rise only while the menu is open"]]]
+];
+const state={}; let db=null;
+const $=id=>document.getElementById(id);
+function render(){
+  const list=$("list"); list.textContent="";
+  for(const [title,items] of STEPS){
+    const s=document.createElement("section"); const h=document.createElement("h2"); h.textContent=title; s.append(h);
+    for(const [id,text] of items){
+      const st=state[id]||{}; const row=document.createElement("div"); row.className="row"+(st.result==="fail"?" failed":"");
+      const seg=document.createElement("div"); seg.className="seg";
+      for(const r of ["pass","fail"]){const b=document.createElement("button");b.className=r;b.textContent=r==="pass"?"Pass":"Fail";
+        b.setAttribute("aria-pressed",String(st.result===r));b.onclick=()=>save(id,{result:st.result===r?"":r});seg.append(b)}
+      const t=document.createElement("div"); t.className="txt"; const sp=document.createElement("span"); sp.className="id"; sp.textContent=id; t.append(sp,text);
+      const ta=document.createElement("textarea"); ta.id="note-"+id; ta.placeholder="Note (what happened?)"; ta.value=st.note||"";
+      ta.onchange=()=>save(id,{note:ta.value});
+      row.append(seg,t,document.createElement("span"),ta); s.append(row);
+    }
+    list.append(s);
+  }
+  const all=STEPS.flatMap(s=>s[1]).map(i=>i[0]);
+  const p=all.filter(i=>state[i]?.result==="pass").length, f=all.filter(i=>state[i]?.result==="fail").length;
+  $("np").textContent=p;$("nf").textContent=f;$("nt").textContent=all.length-p-f;
+}
+async function save(id,patch){
+  state[id]={...(state[id]||{}),...patch}; render();
+  if(!db){$("status").textContent="Not saved: sign in to claude.ai to keep results";return}
+  try{await db.doc("checks/"+id).set(state[id]);$("status").textContent="Saved"}
+  catch(e){$("status").textContent="Couldn't save: "+(e.message||e.code||"error")}
+}
+render();
+(async()=>{
+  const timer=setTimeout(()=>{$("status").textContent="Results won't save here"},10000);
+  db=await window.claude?.use?.("db").catch(()=>null) ?? null;
+  if(!db){clearTimeout(timer);$("status").textContent="Results won't save here";return}
+  db.collection("checks").onSnapshot(snap=>{clearTimeout(timer);
+    for(const d of snap.docs){ if(document.activeElement?.id!=="note-"+d.id) state[d.id]=d.data(); }
+    render();$("status").textContent="Saved results load automatically"},
+   e=>{clearTimeout(timer);$("status").textContent="Couldn't load results"});
+})();
+</script>

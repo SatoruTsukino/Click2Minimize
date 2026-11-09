@@ -1,0 +1,48 @@
+name: Toolbelt
+options:
+  bundleIdPrefix: io.github.satorutsukino
+  deploymentTarget:
+    macOS: "14.2"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: NO
+    MACOSX_DEPLOYMENT_TARGET: "14.2"
+targets:
+  Toolbelt:
+    type: application
+    platform: macOS
+    sources: [Toolbelt]
+    entitlements:
+      path: Toolbelt/Toolbelt.entitlements
+      properties: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.satorutsukino.Toolbelt
+        PRODUCT_NAME: Toolbelt
+        INFOPLIST_FILE: Toolbelt/Info.plist
+  ToolbeltTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [ToolbeltTests]
+    dependencies:
+      - target: Toolbelt
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Toolbelt.app/Contents/MacOS/Toolbelt"
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.satorutsukino.ToolbeltTests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Toolbelt:
+    build:
+      targets:
+        Toolbelt: all
+    test:
+      targets: [ToolbeltTests]
