@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PopoverView: View {
     @ObservedObject private var prefs = Prefs.shared
@@ -8,8 +9,8 @@ struct PopoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if prefs.mixer { mixerSection; Divider() }
-            if !permissions.accessibility, prefs.dockClick {
-                notice("Dock click needs Accessibility access.", button: "Open Settings") { permissions.promptAccessibility() }
+            if !permissions.accessibility, prefs.needsAccessibility {
+                notice("Dock, mouse and ⌘⇥ features need Accessibility access.", button: "Open Settings") { permissions.promptAccessibility() }
             }
 
             Toggle("Dock click", isOn: $prefs.dockClick)
@@ -30,6 +31,8 @@ struct PopoverView: View {
             }
 
             Toggle("Tap ⇧ while dragging: convert ring", isOn: $prefs.shiftRing)
+            Divider()
+            inputSection
             Toggle("Per-app volume", isOn: $prefs.mixer)
             Toggle("Launch at login", isOn: Binding(get: { permissions.launchAtLogin },
                                                     set: { permissions.setLaunchAtLogin($0) }))
@@ -45,6 +48,41 @@ struct PopoverView: View {
         .toggleStyle(.switch)
         .padding(14)
         .frame(width: 320)
+    }
+
+    @ViewBuilder private var inputSection: some View {
+        Toggle("⌘⇥ vertical app switcher", isOn: $prefs.switcher)
+        Toggle("Middle-click Dock icon quits app", isOn: $prefs.dockMiddleQuit)
+        Toggle("Middle-drag moves windows", isOn: $prefs.middleDragMove)
+        Picker("Trackpad middle click", selection: $prefs.trackpadMiddle) {
+            ForEach(TrackpadMiddle.allCases) { Text($0.title).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        Text(Trackpad.systemThreeFingerDrag && prefs.trackpadMiddle != .off
+             ? "Three Finger Drag is on in Accessibility settings, so three-finger presses stay drags; light taps still work in Lighter."
+             : prefs.trackpadMiddle.detail)
+            .font(.caption).foregroundStyle(.secondary)
+        HStack {
+            Toggle("Finder Dock icon opens", isOn: $prefs.finderOpensApp)
+            Spacer()
+            Button(prefs.finderAppPath.isEmpty ? "Choose…"
+                   : FileManager.default.displayName(atPath: prefs.finderAppPath).replacingOccurrences(of: ".app", with: "")) {
+                chooseFinderApp()
+            }
+            .controlSize(.small)
+        }
+    }
+
+    private func chooseFinderApp() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.message = "Choose an app to open when clicking Finder's Dock icon"
+        NSApp.activate(ignoringOtherApps: true)
+        if panel.runModal() == .OK, let url = panel.url {
+            prefs.finderAppPath = url.path
+            prefs.finderOpensApp = true
+        }
     }
 
     @ViewBuilder private var mixerSection: some View {

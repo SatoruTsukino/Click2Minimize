@@ -41,11 +41,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         MixerModel.shared.shutdown() // release taps so no app stays muted
+        AppSwitcher.setNativeCommandTab(enabled: true) // never leave ⌘⇥ disabled
     }
 
     private func applyPrefs() {
         let prefs = Prefs.shared
-        if prefs.dockClick { DockClick.shared.start() } else { DockClick.shared.stop() }
+        // One shared event tap for Dock clicks, middle button, trackpad press and ⌘⇥ (ADR-008).
+        InputTap.shared.update(prefs.inputFeatures)
+        AppSwitcher.shared.setEnabled(prefs.switcher && InputTap.shared.isRunning)
+        Trackpad.shared.setMode(InputTap.shared.isRunning ? prefs.trackpadMiddle : .off)
         // One drag monitor serves both the shake shelf and the Shift ring.
         if prefs.shakeShelf || prefs.shiftRing { DragMonitor.shared.start() } else { DragMonitor.shared.stop() }
         MixerModel.shared.setEnabled(prefs.mixer)

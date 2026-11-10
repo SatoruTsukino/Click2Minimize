@@ -4,15 +4,12 @@ import ApplicationServices
 enum DockDecision: Equatable { case passThrough, minimize, hide }
 
 /// Clicking the Dock icon of the app that is already frontmost minimizes its windows or hides it.
+/// Events arrive from the shared `InputTap` (ADR-008).
 /// Dock items are hit-tested live through Accessibility at the pointer: correct with magnification,
 /// auto-hide and multiple displays, and no AppleScript / Automation permission.
 @MainActor
 final class DockClick {
     static let shared = DockClick()
-
-    private var tap: CFMachPort?
-    private var source: CFRunLoopSource?
-    private var swallowNextUp = false
 
     /// Pure decision table, unit tested.
     nonisolated static func decide(isApp: Bool, isActive: Bool, isHidden: Bool, isFullscreen: Bool,
@@ -21,55 +18,22 @@ final class DockClick {
         return mode == .minimize ? .minimize : .hide
     }
 
-    @discardableResult
-    func start() -> Bool {
-        guard tap == nil else { return true }
-        guard AXIsProcessTrusted() else { return false }
-        let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.leftMouseUp.rawValue)
-        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
-                                          eventsOfInterest: CGEventMask(mask),
-                                          callback: { _, type, event, _ in
-                                              MainActor.assumeIsolated { DockClick.shared.handle(type, event) }
-                                          }, userInfo: nil) else { return false }
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        self.tap = tap
-        self.source = source
-        return true
+    /// Finder's Dock icon opens the chosen app instead (DOCK-06). Pure, unit tested.
+    nonisolated static func finderAlternate(itemURL: URL?, isApp: Bool, enabled: Bool, path: String) -> URL? {
+        guard enabled, isApp, !path.isEmpty, itemURL?.lastPathComponent == "Finder.app" else { return nil }
+        return URL(fileURLWithPath: path)
     }
 
-    func stop() {
-        guard let tap else { return }
-        CGEvent.tapEnable(tap: tap, enable: false)
-        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
-        CFMachPortInvalidate(tap)
-        self.tap = nil
-        source = nil
-    }
-
-    private func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
-        switch type {
-        case .tapDisabledByTimeout, .tapDisabledByUserInput:
-            if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
-        case .leftMouseDown:
-            if handleDown(event) {
-                swallowNextUp = true
-                return nil
-            }
-        case .leftMouseUp where swallowNextUp:
-            swallowNextUp = false
-            return nil
-        default:
-            break
-        }
-        return Unmanaged.passUnretained(event)
-    }
-
-    /// Returns true when the click was handled and must not reach the Dock.
-    private func handleDown(_ event: CGEvent) -> Bool {
+    /// Left mouse-down from `InputTap`. Returns true when the click was handled and must not reach the Dock.
+    func handleDown(_ event: CGEvent) -> Bool {
         let p = event.location
-        guard Self.isNearDock(p), let item = Self.dockItem(at: p), item.isApp,
-              let app = item.runningApp, app.isActive else { return false }
+        guard Self.isNearDock(p), let item = Self.dockItem(at: p) else { return false }
+        let prefs = Prefs.shared
+        if let url = Self.finderAlternate(itemURL: item.url, isApp: item.isApp, enabled: prefs.finderOpensApp, path: prefs.finderAppPath) {
+            NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+            return true
+        }
+        guard prefs.dockClick, item.isApp, let app = item.runningApp, app.isActive else { return false }
         let windows = AX.visibleWindows(app.processIdentifier)
         let decision = Self.decide(
             isApp: true, isActive: true, isHidden: app.isHidden,
@@ -85,6 +49,14 @@ final class DockClick {
         case .minimize:
             for w in windows { AX.set(w, kAXMinimizedAttribute, kCFBooleanTrue) }
         }
+        return true
+    }
+
+    /// Middle-click on an app's Dock icon quits it (DOCK-07). Never Finder.
+    func quitApp(at p: CGPoint) -> Bool {
+        guard Self.isNearDock(p), let item = Self.dockItem(at: p), item.isApp, let app = item.runningApp,
+              app.bundleIdentifier != "com.apple.finder" else { return false }
+        app.terminate()
         return true
     }
 

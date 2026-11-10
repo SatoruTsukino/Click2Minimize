@@ -24,3 +24,9 @@ A process tap mutes the original stream and re-renders it with gain, adding late
 
 ## ADR-007: Radial convert ring (2026-11-09)
 Convertino-style ring added alongside the shelf actions (it doesn't replace ADR-002). Tap Shift during a content drag to toggle it. Every action is shown: 8 on the inner ring, the rest on an outer ring. Results go to the shelf (temp), not beside the original. Its key monitor exists only during content drags.
+
+## ADR-008: Input features from Click2Minimize and WheelClick (2026-11-10)
+- **Added (user request):** a vertical ⌘⇥ app switcher, Finder's Dock icon opening another app, middle-clicking a Dock icon to quit the app, and middle-dragging to move the window under the pointer (all ported from the user's Click2Minimize 3.0 code). Also a trackpad middle click with two sensitivities, matching WheelClick's free gestures: **Standard** is a three-finger physical press (WheelClick's "Three-Finger Click"); **Lighter** is also a light three-finger tap with no press (WheelClick's "Three-Finger Tap").
+- **One event tap:** a single `InputTap` replaces DockClick's private tap. Its event mask is rebuilt from the enabled features, so keyboard events are tapped only while the switcher is on, and drag events only while the trackpad middle click is on. Events Ledge synthesizes carry a marker and pass straight through.
+- **Native ⌘⇥:** turned off with the private `CGSSetSymbolicHotKeyEnabled(1/2)` only while the switcher is on. It is turned back on when the switcher is switched off and when Toolbelt quits. A crash leaves it off until Toolbelt runs again, which restores the setting at launch.
+- **Trackpad:** the private MultitouchSupport framework (loaded at runtime with dlopen) runs only while the trackpad middle click is on. Tap detection runs on its callback thread; the main thread is woken only for an actual tap. Standard mode is suspended while macOS Three Finger Drag is on, as in WheelClick.

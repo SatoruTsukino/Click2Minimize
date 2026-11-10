@@ -48,4 +48,29 @@ enum AX {
     static func visibleWindows(_ pid: pid_t) -> [AXUIElement] {
         windows(pid).filter { subrole($0) == kAXStandardWindowSubrole && !isMinimized($0) }
     }
+
+    /// The window containing the element under `p` (top-left global coordinates).
+    static func window(at p: CGPoint) -> AXUIElement? {
+        guard var el = element(at: p) else { return nil }
+        for _ in 0..<12 {
+            if (get(el, kAXRoleAttribute) as String?) == kAXWindowRole { return el }
+            if let w: AXUIElement = get(el, kAXWindowAttribute) { return w }
+            guard let parent = parent(el) else { return nil }
+            el = parent
+        }
+        return nil
+    }
+
+    static func position(_ w: AXUIElement) -> CGPoint? {
+        guard let v: AXValue = get(w, kAXPositionAttribute) else { return nil }
+        var p = CGPoint.zero
+        return AXValueGetValue(v, .cgPoint, &p) ? p : nil
+    }
+
+    @discardableResult
+    static func setPosition(_ w: AXUIElement, _ p: CGPoint) -> Bool {
+        var p = p
+        guard let v = AXValueCreate(.cgPoint, &p) else { return false }
+        return set(w, kAXPositionAttribute, v)
+    }
 }

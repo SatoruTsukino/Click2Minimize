@@ -6,8 +6,8 @@ updated: 2026-11-09T00:00:00Z
 
 # Roadmap
 
-> **Current Phase:** 7 - Radial convert ring (done)
-> **Status:** verifying (user hand test)
+> **Current Phase:** 8 - Input features (C2M + WheelClick)
+> **Status:** verifying (user hand test R5)
 
 ## Must-Haves (from SPEC)
 
@@ -98,6 +98,18 @@ updated: 2026-11-09T00:00:00Z
 
 ---
 
+### Phase 8: Input features (Click2Minimize + WheelClick)
+**Status:** ✅ Complete (awaiting hand test)
+**Objective:** Vertical ⌘⇥ switcher, Finder Dock icon opens another app, Dock middle-click quits, middle-drag moves windows, trackpad middle click (Standard / Lighter), all on one shared event tap.
+**Requirements:** SWCH-01..02, DOCK-06..07, MIDL-01..03
+**Depends on:** Phase 2
+
+**Plans:**
+- [x] Plan 8.1: Shared input tap + middle button + trackpad
+- [x] Plan 8.2: App switcher + Finder alternate + UI
+
+---
+
 ## Progress Summary
 
 | Phase | Status | Plans | Complete |
@@ -109,3 +121,4 @@ updated: 2026-11-09T00:00:00Z
 | 5 | ✅ | 1/1 | 2026-11-09 |
 | 6 | ✅ | 3/3 | 2026-11-09 |
 | 7 | ✅ | 1/1 | 2026-11-09 |
+| 8 | ✅ | 2/2 | 2026-11-10 |
