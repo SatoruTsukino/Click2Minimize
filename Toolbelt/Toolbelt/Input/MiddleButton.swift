@@ -71,22 +71,39 @@ final class MiddleButton {
     func trackpadDown(_ e: CGEvent) -> Bool {
         guard Trackpad.shared.pressIsMiddle else { return false }
         convertingTrackpad = true
-        if let m = Synth.middle(.otherMouseDown, at: e.location, template: e) { Synth.post(m) }
+        let start = e.location
+        if let m = Synth.middle(.otherMouseDown, at: start, template: e) { Synth.post(m) }
+        // Three pressed fingers don't move the pointer (R6.1): the fingers carry the pointer, and the
+        // drag becomes middle-drag events, so window moving works exactly as with a mouse.
+        _ = Self.warpSource
+        CGAssociateMouseAndMouseCursorPosition(0)
+        Trackpad.shared.beginFollow { offset in
+            let p = CGPoint(x: start.x + offset.dx, y: start.y + offset.dy)
+            CGWarpMouseCursorPosition(p)
+            if let m = Synth.middle(.otherMouseDragged, at: p) { Synth.post(m) }
+        }
         return true
     }
 
     func trackpadDragged(_ e: CGEvent) -> Bool {
-        guard convertingTrackpad else { return false }
-        if let m = Synth.middle(.otherMouseDragged, at: e.location, template: e) { Synth.post(m) }
-        return true
+        convertingTrackpad // the fingers drive the drag; swallow system drags meanwhile
     }
 
     func trackpadUp(_ e: CGEvent) -> Bool {
         guard convertingTrackpad else { return false }
         convertingTrackpad = false
-        if let m = Synth.middle(.otherMouseUp, at: e.location, template: e) { Synth.post(m) }
+        Trackpad.shared.endFollow()
+        CGAssociateMouseAndMouseCursorPosition(1)
+        if let m = Synth.middle(.otherMouseUp, at: Synth.cursor, template: e) { Synth.post(m) }
         return true
     }
+
+    /// Lets the pointer be warped every frame without the system freezing it briefly after each warp.
+    private static let warpSource: CGEventSource? = {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        source?.localEventsSuppressionInterval = 0
+        return source
+    }()
 
     /// A light three-finger tap (Lighter mode): a full middle click at the pointer.
     func tap() {

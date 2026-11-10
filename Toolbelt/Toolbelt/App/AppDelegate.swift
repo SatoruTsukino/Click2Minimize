@@ -42,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MixerModel.shared.shutdown() // release taps so no app stays muted
         AppSwitcher.setNativeCommandTab(enabled: true) // never leave ⌘⇥ disabled
+        CGAssociateMouseAndMouseCursorPosition(1) // never leave the pointer detached mid-drag
     }
 
     private func applyPrefs() {

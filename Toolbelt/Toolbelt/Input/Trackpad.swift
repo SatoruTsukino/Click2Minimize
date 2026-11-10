@@ -95,6 +95,10 @@ final class Trackpad {
         var detector = TapDetector()
         var tapsEnabled = false
         var buttonDown = false
+        // Finger-follow (three-finger press-and-drag): latest centroid, delivered to main coalesced.
+        var follow = false
+        var followScheduled = false
+        var cx: Float = 0, cy: Float = 0
     }
     private nonisolated static let shared_ = Shared()
 
@@ -115,14 +119,60 @@ final class Trackpad {
         s.lock.lock()
         s.fingers = n
         let tapped = s.detector.frame(count: n, cx: sx / d, cy: sy / d, at: timestamp, buttonDown: s.buttonDown) && s.tapsEnabled
+        var deliver = false
+        if s.follow, n >= 2 {
+            s.cx = sx / d
+            s.cy = sy / d
+            deliver = !s.followScheduled
+            if deliver { s.followScheduled = true }
+        }
         s.lock.unlock()
         if tapped { DispatchQueue.main.async { MiddleButton.shared.tap() } }
+        if deliver { DispatchQueue.main.async { Trackpad.shared.deliverFollow() } }
         return 0
     }
 
     /// Called by the input tap on every left button down/up.
     nonisolated static func noteButton(_ down: Bool) {
         shared_.lock.withLock { shared_.buttonDown = down }
+    }
+
+    // MARK: Finger follow
+
+    /// A pressed three-finger drag doesn't move the pointer, so the fingers themselves drive it:
+    /// `handler` gets the offset in points from where the press began. Ported idea from Click2Minimize 3.0.
+    private var followHandler: ((CGVector) -> Void)?
+    private var followStart: (x: Float, y: Float)?
+
+    func beginFollow(_ handler: @escaping (CGVector) -> Void) {
+        followHandler = handler
+        followStart = nil
+        Self.shared_.lock.withLock {
+            Self.shared_.follow = true
+            Self.shared_.followScheduled = false
+        }
+    }
+
+    func endFollow() {
+        followHandler = nil
+        followStart = nil
+        Self.shared_.lock.withLock { Self.shared_.follow = false }
+    }
+
+    private func deliverFollow() {
+        let c: (x: Float, y: Float) = Self.shared_.lock.withLock {
+            Self.shared_.followScheduled = false
+            return (Self.shared_.cx, Self.shared_.cy)
+        }
+        guard let handler = followHandler else { return }
+        guard let start = followStart else { followStart = c; return }
+        handler(Self.offset(from: start, to: c))
+    }
+
+    /// Normalized trackpad travel to screen points. The pad is ~1.6× wider than tall, so equal finger
+    /// travel gives equal pointer travel; y is flipped (pad y grows upward, screen y downward).
+    nonisolated static func offset(from a: (x: Float, y: Float), to b: (x: Float, y: Float)) -> CGVector {
+        CGVector(dx: CGFloat(b.x - a.x) * 1400, dy: CGFloat(a.y - b.y) * 875)
     }
 
     /// Fingers currently on the trackpad.

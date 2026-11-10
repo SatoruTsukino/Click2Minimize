@@ -67,6 +67,12 @@ final class TapDetectorTests: XCTestCase {
         XCTAssertFalse(run([(three, 0, false), (three, 0.05, true), ([], 0.1, false)]))
     }
 
+    func testFingerOffsetMapsToScreenPoints() {
+        let v = Trackpad.offset(from: (0.5, 0.5), to: (0.6, 0.4))
+        XCTAssertEqual(v.dx, 140, accuracy: 0.5)
+        XCTAssertEqual(v.dy, 87.5, accuracy: 0.5, "pad y up ⇒ screen y down")
+    }
+
     func testTwoAndFourFingersDoNotFire() {
         XCTAssertFalse(run([(Array(three.prefix(2)), 0, false), ([], 0.1, false)]))
         XCTAssertFalse(run([(three + [(0.7, 0.5)], 0, false), ([], 0.1, false)]))
