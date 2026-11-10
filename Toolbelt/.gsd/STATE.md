@@ -8,7 +8,7 @@ updated: 2026-11-10T12:00:00Z
 
 **Milestone:** v1.0
 **Phase:** 8 - Input features (C2M + WheelClick) (executed)
-**Status:** R5 10/12; gap fixes built (8.3); awaiting R6 retest
+**Status:** phase 8 verified (R5 10/12, R7 3/3); MIDL-03 known cost
 **Plan:** —
 
 ## Last Action

@@ -30,3 +30,7 @@ gap_closure: true
 ## R6 retest
 - R6.1 ✗ "window isnt getting grabbed": root cause, a pressed three-finger drag moves no pointer, so no drag events reached the middle-drag code. Fix: while a three-finger press is held, the multitouch centroid drives the pointer (detached and warped) and posts middle-drag events (`Trackpad.beginFollow`); the pointer is reattached on release and on quit.
 - R6.2 ✗ "0.5% top when moving mouse": while any finger is on the trackpad, the private multitouch framework delivers ~90 frames/s; Toolbelt's own per-frame work is now allocation- and IPC-free. Remaining cost is the framework's frame delivery, inherent while the trackpad middle click is on (Off = 0 frames).
+
+## R7 retest
+- R7.1–R7.3 pass. Note: window moves "a little laggy" in Safari and Opiumware: their Accessibility position writes are slow; WindowMover already sends only the newest position, so the remaining lag is the app's.
+- R6.2 (0.5 % while moving the mouse with the trackpad middle click on) remains a known cost of the multitouch framework; MIDL-03 stays Built.

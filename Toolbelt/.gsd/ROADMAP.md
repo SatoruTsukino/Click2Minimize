@@ -7,7 +7,7 @@ updated: 2026-11-09T00:00:00Z
 # Roadmap
 
 > **Current Phase:** 8 - Input features (C2M + WheelClick)
-> **Status:** verifying (user hand test R6)
+> **Status:** phase 8 verified (R7 3/3)
 
 ## Must-Haves (from SPEC)
 

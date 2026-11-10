@@ -46,7 +46,7 @@ Status values: `Pending` → `Built` (code done, unit-tested where logic is test
 | SWCH-02 | The native ⌘⇥ is disabled only while the switcher is on; it is restored when the switcher is turned off and when Toolbelt quits; activating an app whose windows are all minimized restores one window | ADR-008 | Verified |
 | DOCK-06 | Clicking Finder's Dock icon opens a chosen app instead (toggle and app chooser; off by default) | ADR-008 | Verified |
 | DOCK-07 | Middle-clicking an app's Dock icon quits that app (never Finder) | ADR-008 | Verified |
-| MIDL-01 | Middle-dragging moves the window under the pointer (AX writes coalesced on a background queue); a plain middle click passes through unchanged; a haptic tick confirms the grab (R5.7) | ADR-008 | Built |
+| MIDL-01 | Middle-dragging moves the window under the pointer (AX writes coalesced on a background queue); a plain middle click passes through unchanged; a haptic tick confirms the grab (R5.7) | ADR-008 | Verified |
 | MIDL-02 | Trackpad middle click: Off / Standard (three-finger press) / Lighter (adds a light three-finger tap, no press); Standard is suspended while macOS Three Finger Drag is on | ADR-008 | Verified |
 | MIDL-03 | No idle cost from the new features: one event tap whose mask covers only enabled features; multitouch runs only while the trackpad middle click is on; the switcher UI is built on first use; the multitouch callback allocates nothing and makes no IPC (R5.12) | SPEC goal 5 | Built |
 | PACK-01 | `xcodegen` project, Release build with zero warnings, unit tests pass headless | SPEC success | Verified |
