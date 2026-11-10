@@ -46,7 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyPrefs() {
         let prefs = Prefs.shared
         if prefs.dockClick { DockClick.shared.start() } else { DockClick.shared.stop() }
-        if prefs.shakeShelf { DragMonitor.shared.start() } else { DragMonitor.shared.stop() }
+        // One drag monitor serves both the shake shelf and the Shift ring.
+        if prefs.shakeShelf || prefs.shiftRing { DragMonitor.shared.start() } else { DragMonitor.shared.stop() }
         MixerModel.shared.setEnabled(prefs.mixer)
     }
 

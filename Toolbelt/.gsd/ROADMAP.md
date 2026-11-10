@@ -6,7 +6,7 @@ updated: 2026-11-09T00:00:00Z
 
 # Roadmap
 
-> **Current Phase:** 5 - Package (done)
+> **Current Phase:** 7 - Radial convert ring (done)
 > **Status:** verifying (user hand test)
 
 ## Must-Haves (from SPEC)
@@ -88,6 +88,16 @@ updated: 2026-11-09T00:00:00Z
 
 ---
 
+### Phase 7: Radial convert ring
+**Status:** ✅ Complete (awaiting hand test)
+**Objective:** Convertino-style Shift ring during drags, results to the shelf.
+**Requirements:** RING-01..04
+
+**Plans:**
+- [x] Plan 7.1: Radial convert ring
+
+---
+
 ## Progress Summary
 
 | Phase | Status | Plans | Complete |
@@ -98,3 +108,4 @@ updated: 2026-11-09T00:00:00Z
 | 4 | ✅ | 1/1 | 2026-11-09 |
 | 5 | ✅ | 1/1 | 2026-11-09 |
 | 6 | ✅ | 3/3 | 2026-11-09 |
+| 7 | ✅ | 1/1 | 2026-11-09 |

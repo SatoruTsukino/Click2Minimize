@@ -1,5 +1,5 @@
 ---
-updated: 2026-11-09T22:00:00Z
+updated: 2026-11-10T02:10:00Z
 ---
 
 # Project State
@@ -7,19 +7,18 @@ updated: 2026-11-09T22:00:00Z
 ## Current Position
 
 **Milestone:** v1.0
-**Phase:** 6 - Hand-test gap closure (executed)
-**Status:** verifying — waiting on round-3 retest
+**Phase:** 7 - Radial convert ring (executed)
+**Status:** verified — R4 7/7 pass; committed
 **Plan:** —
 
 ## Last Action
 
-R3.4 measured during normal use: 0.23 % avg → 0.04 % avg (0.05 s CPU / 120 s) after caching process owners (plan 6.3). 22 tests pass. MIX-10 verified headless (MixerListTests); 23 tests pass.
+Phase 7: Shift-tap convert ring built (ADR-007). 30 tests pass. Idle unchanged: 0.0 %, 0 wakeups, 0.01 s CPU / 60 s, 14.2 MB. Hand test R4 passed 7/7 (RING-01..04, SHELL-06 Verified). Phase 7 committed on feat/toolbelt.
 
 ## Next Steps
 
-1. User checks SHELL-06 (menu grows downward)
-2. Commit `Toolbelt/`
-3. Optional: measure active-path perf (mixer taps, meters) with `sudo powermetrics`
+1. Push or merge feat/toolbelt when the user asks
+2. Optional: measure active-path perf (mixer taps, meters) with `sudo powermetrics`
 
 ## Active Decisions
 

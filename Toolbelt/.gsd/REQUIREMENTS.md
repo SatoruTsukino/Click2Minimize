@@ -37,7 +37,11 @@ Status values: `Pending` → `Built` (code done, unit-tested where logic is test
 | DOCK-05 | Dock pre-filter band = Dock tile size (or magnified size) + 24 px, so other clicks never cost an AX query; clicks cost no pasteboard IPC | Hand test R2.10 | Verified |
 | MIX-10 | Mixer list scrolls past 6 apps so the menu never grows off screen | Hand test R3.3; MixerListTests (headless layout: 2→92 pt, 6/20→276 pt) | Verified |
 | MIX-11 | Process owner (PID → app) cached per audio object; listener storms coalesced 250 ms; unchanged refresh does no UI/tap work | R3.4 measurement | Verified |
-| SHELL-06 | Menu is a top-pinned panel (below the icon, or top-right under the menu bar when the icon is hidden); it grows downward and closes on click-away/Esc | User report: menu crawls up | Built |
+| SHELL-06 | Menu is a top-pinned panel (below the icon, or top-right under the menu bar when the icon is hidden); it grows downward and closes on click-away/Esc | User report: menu crawls up | Verified |
+| RING-01 | Tapping Shift during a content drag toggles a ring of conversion petals around the pointer; it closes on drop, on a second tap, or when the drag ends | ADR-007 | Verified |
+| RING-02 | Every applicable action appears: inner ring ≤ 8, the rest on an outer ring; a Shelf petal and a centre Cancel | ADR-007 | Verified |
+| RING-03 | Dropping on a petal converts and shows the result in the shelf | ADR-007 | Verified |
+| RING-04 | No idle cost: the modifier monitor exists only during content drags; pref toggle (default on) | SPEC goal 5 | Verified |
 | PACK-01 | `xcodegen` project, Release build with zero warnings, unit tests pass headless | SPEC success | Verified |
 | PACK-02 | `scripts/build_dmg.sh` writes `dist/Toolbelt.dmg`, ad-hoc signed | SPEC success | Verified |
 
@@ -49,4 +53,5 @@ Status values: `Pending` → `Built` (code done, unit-tested where logic is test
 | 3 Shelf + convert | SHLF-01..04, CONV-01..05 |
 | 4 Mixer | MIX-01..06 |
 | 5 Package | PACK-02 |
+| 7 Radial ring | RING-01..04 |
 | 6 Hand-test gaps | SHELL-05, SHLF-05, SHLF-06, MIX-07, MIX-08, MIX-09, MIX-10, MIX-11, DOCK-05 |

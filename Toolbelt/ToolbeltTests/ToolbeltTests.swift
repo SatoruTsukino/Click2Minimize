@@ -362,6 +362,47 @@ final class MenuPanelTests: XCTestCase {
     }
 }
 
+final class RadialTests: XCTestCase {
+    func testShiftTap() {
+        var t = ShiftTap()
+        XCTAssertFalse(t.update(shift: true, others: false, at: 0))
+        XCTAssertTrue(t.update(shift: false, others: false, at: 0.2), "quick press and release is a tap")
+        XCTAssertFalse(t.update(shift: true, others: false, at: 1))
+        XCTAssertFalse(t.update(shift: false, others: false, at: 1.5), "held too long")
+        XCTAssertFalse(t.update(shift: true, others: false, at: 2))
+        XCTAssertFalse(t.update(shift: true, others: true, at: 2.05))
+        XCTAssertFalse(t.update(shift: false, others: false, at: 2.1), "⇧⌘ is not a tap")
+        XCTAssertFalse(t.update(shift: false, others: false, at: 3), "release without press")
+    }
+
+    func testRingSplitAndSpacing() {
+        let six = RadialLayout.place(count: 6)
+        XCTAssertEqual(six.count, 6)
+        XCTAssertEqual(six[0], CGPoint(x: 0, y: RadialLayout.innerRadius), "starts at 12 o'clock")
+        for p in six { XCTAssertEqual(hypot(p.x, p.y), RadialLayout.innerRadius, accuracy: 1) }
+
+        let twelve = RadialLayout.place(count: 12)
+        XCTAssertEqual(twelve.prefix(8).filter { abs(hypot($0.x, $0.y) - RadialLayout.innerRadius) < 1 }.count, 8)
+        XCTAssertEqual(twelve.suffix(4).filter { abs(hypot($0.x, $0.y) - RadialLayout.outerRadius) < 1 }.count, 4)
+        XCTAssertGreaterThan(RadialLayout.extent(count: 12), RadialLayout.extent(count: 8))
+    }
+
+    func testPetalsDoNotOverlap() {
+        for n in 1...20 {
+            let pts = RadialLayout.place(count: n)
+            for i in pts.indices { for j in pts.indices where j > i {
+                XCTAssertGreaterThanOrEqual(hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y), RadialLayout.petalSize - 0.5, "n=\(n)")
+            } }
+        }
+    }
+
+    func testEveryActionHasUniqueShortTitle() {
+        let all = Converter.actions(for: [URL(fileURLWithPath: "/a.mov")], tools: Tools(ffmpeg: URL(fileURLWithPath: "/f"), soffice: nil))
+            + Converter.actions(for: [URL(fileURLWithPath: "/a.png")], tools: Tools())
+        XCTAssertEqual(Set(all.map(\.shortTitle)).count, all.count)
+    }
+}
+
 final class StoreTests: XCTestCase {
     func testMixerStoreRoundTrip() {
         let d = UserDefaults(suiteName: "tb-\(UUID().uuidString)")!
@@ -379,7 +420,7 @@ final class StoreTests: XCTestCase {
     @MainActor func testPrefsDefaultsAndPersist() {
         let d = UserDefaults(suiteName: "tb-\(UUID().uuidString)")!
         let p = Prefs(defaults: d)
-        XCTAssertTrue(p.dockClick && p.shakeShelf && p.mixer)
+        XCTAssertTrue(p.dockClick && p.shakeShelf && p.mixer && p.shiftRing)
         XCTAssertEqual(p.dockMode, .minimize)
         p.dockMode = .hide
         XCTAssertEqual(Prefs(defaults: d).dockMode, .hide)

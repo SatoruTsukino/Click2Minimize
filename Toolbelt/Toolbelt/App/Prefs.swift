@@ -25,15 +25,17 @@ final class Prefs: ObservableObject {
     @Published var shakeShelf: Bool { didSet { save(shakeShelf, "shakeShelf") } }
     @Published var shakeSensitivity: ShakeSensitivity { didSet { save(shakeSensitivity.rawValue, "shakeSensitivity") } }
     @Published var mixer: Bool { didSet { save(mixer, "mixer") } }
+    @Published var shiftRing: Bool { didSet { save(shiftRing, "shiftRing") } }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        defaults.register(defaults: ["dockClick": true, "shakeShelf": true, "mixer": true])
+        defaults.register(defaults: ["dockClick": true, "shakeShelf": true, "mixer": true, "shiftRing": true])
         dockClick = defaults.bool(forKey: "dockClick")
         dockMode = DockMode(rawValue: defaults.string(forKey: "dockMode") ?? "") ?? .minimize
         shakeShelf = defaults.bool(forKey: "shakeShelf")
         shakeSensitivity = ShakeSensitivity(rawValue: defaults.string(forKey: "shakeSensitivity") ?? "") ?? .normal
         mixer = defaults.bool(forKey: "mixer")
+        shiftRing = defaults.bool(forKey: "shiftRing")
     }
 
     private func save(_ value: Any, _ key: String) {

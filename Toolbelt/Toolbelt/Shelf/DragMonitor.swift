@@ -33,6 +33,7 @@ final class DragMonitor {
         }
         add(.leftMouseDown) { [weak self] in self?.mouseDown() }
         add(.leftMouseDragged) { [weak self] in self?.mouseDragged() }
+        add(.leftMouseUp) { [weak self] in self?.mouseUp() } // flag check only, no IPC
     }
 
     func stop() {
@@ -41,10 +42,18 @@ final class DragMonitor {
     }
 
     private func mouseDown() {
+        RadialController.shared.dragEnded() // in case the last drag's mouse-up never reached us
         isContentDrag = false
         shownThisDrag = false
         probes = 0
         shake = ShakeDetector(tuning: .for(Prefs.shared.shakeSensitivity))
+    }
+
+    private func mouseUp() {
+        guard isContentDrag else { return }
+        isContentDrag = false
+        // Let a drop on a petal land before the ring goes away.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { RadialController.shared.dragEnded() }
     }
 
     private func mouseDragged() {
@@ -57,9 +66,10 @@ final class DragMonitor {
             lastCount = count
             guard Ingest.canRead(dragPasteboard) else { return }
             isContentDrag = true
+            RadialController.shared.dragBegan(dragPasteboard)
         }
         let point = NSEvent.mouseLocation
-        if shake.add(point, at: ProcessInfo.processInfo.systemUptime) {
+        if Prefs.shared.shakeShelf, shake.add(point, at: ProcessInfo.processInfo.systemUptime) {
             shownThisDrag = true
             ShelfController.shared.show(at: point)
         }

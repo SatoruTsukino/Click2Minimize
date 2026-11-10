@@ -21,3 +21,6 @@ Reuse the user's Click2Minimize 3.0 approach: `AXUIElementCopyElementAtPosition`
 
 ## ADR-006: Audio taps on demand (2026-11-09)
 A process tap mutes the original stream and re-renders it with gain, adding latency. Create taps only for apps with volume ≠ 100% / muted, or while the popover is open for meters; tear down otherwise.
+
+## ADR-007: Radial convert ring (2026-11-09)
+Convertino-style ring added alongside the shelf actions (it doesn't replace ADR-002). Tap Shift during a content drag to toggle it. Every action is shown: 8 on the inner ring, the rest on an outer ring. Results go to the shelf (temp), not beside the original. Its key monitor exists only during content drags.

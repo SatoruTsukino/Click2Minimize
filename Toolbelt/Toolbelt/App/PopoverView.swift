@@ -29,6 +29,7 @@ struct PopoverView: View {
                 .pickerStyle(.segmented)
             }
 
+            Toggle("Tap ⇧ while dragging: convert ring", isOn: $prefs.shiftRing)
             Toggle("Per-app volume", isOn: $prefs.mixer)
             Toggle("Launch at login", isOn: Binding(get: { permissions.launchAtLogin },
                                                     set: { permissions.setLaunchAtLogin($0) }))
