@@ -27,6 +27,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.satorutsukino.Toolbelt
         PRODUCT_NAME: Toolbelt
         INFOPLIST_FILE: Toolbelt/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   ToolbeltTests:
     type: bundle.unit-test
     platform: macOS
