@@ -23,3 +23,6 @@ gap_closure: true
 - top 16 × 1 s: 0.0–0.3 % CPU, 16 idle wakeups/s, 42 MB
 - sample: main thread almost idle; the few busy samples are AppKit answering external Accessibility queries (Raycast running); multitouch thread receiving frames
 - After-fix numbers need the new build installed (new ad-hoc signature ⇒ re-grant Accessibility)
+
+## Measurement after fix (installed 6398b37, Accessibility granted, multitouch running)
+- top 30 × 1 s: avg 0.07 %, max 0.2 %, 15/30 samples 0.0 %, 0 idle wakeups/s, 14 MB (was 16 wakeups/s, 42 MB)
