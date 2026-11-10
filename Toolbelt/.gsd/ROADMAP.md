@@ -7,7 +7,7 @@ updated: 2026-11-09T00:00:00Z
 # Roadmap
 
 > **Current Phase:** 8 - Input features (C2M + WheelClick)
-> **Status:** verifying (user hand test R5)
+> **Status:** verifying (user hand test R6)
 
 ## Must-Haves (from SPEC)
 
@@ -107,6 +107,7 @@ updated: 2026-11-09T00:00:00Z
 **Plans:**
 - [x] Plan 8.1: Shared input tap + middle button + trackpad
 - [x] Plan 8.2: App switcher + Finder alternate + UI
+- [x] Plan 8.3: Hand-test R5 gaps (haptic grab, trackpad callback cost)
 
 ---
 
@@ -121,4 +122,4 @@ updated: 2026-11-09T00:00:00Z
 | 5 | ✅ | 1/1 | 2026-11-09 |
 | 6 | ✅ | 3/3 | 2026-11-09 |
 | 7 | ✅ | 1/1 | 2026-11-09 |
-| 8 | ✅ | 2/2 | 2026-11-10 |
+| 8 | ✅ | 3/3 | 2026-11-10 |

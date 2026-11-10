@@ -8,7 +8,7 @@ updated: 2026-11-10T12:00:00Z
 
 **Milestone:** v1.0
 **Phase:** 8 - Input features (C2M + WheelClick) (executed)
-**Status:** built; 42 tests pass; awaiting hand test R5
+**Status:** R5 10/12; gap fixes built (8.3); awaiting R6 retest
 **Plan:** —
 
 ## Last Action

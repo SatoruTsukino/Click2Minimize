@@ -75,6 +75,7 @@ final class InputTap {
 
     private func consumed(_ type: CGEventType, _ e: CGEvent) -> Bool {
         let f = features
+        if type == .leftMouseDown || type == .leftMouseUp { Trackpad.noteButton(type == .leftMouseDown) }
         switch type {
         case .keyDown, .flagsChanged:
             return f.switcher && AppSwitcher.shared.handleKey(type, e)

@@ -43,6 +43,8 @@ final class MiddleButton {
             if !current.moving, WindowMover.isDrag(from: current.start, to: p),
                let w = AX.window(at: current.start), !AX.isFullscreen(w), WindowMover.shared.begin(w) {
                 current.moving = true
+                // Tactile confirmation that the window is grabbed (R5.7); only a trackpad can play it.
+                NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
             }
             if current.moving {
                 WindowMover.shared.move(to: CGVector(dx: p.x - current.start.x, dy: p.y - current.start.y))

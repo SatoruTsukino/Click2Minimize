@@ -34,17 +34,23 @@ struct TapDetector {
     /// Feed one frame: contact positions (0...1), time, and whether a mouse button is down.
     /// Returns true when the frame ends a three-finger tap.
     mutating func frame(_ points: [(x: Float, y: Float)], at t: TimeInterval, buttonDown: Bool) -> Bool {
-        if points.isEmpty {
+        let n = Float(max(points.count, 1))
+        return frame(count: points.count, cx: points.map(\.x).reduce(0, +) / n, cy: points.map(\.y).reduce(0, +) / n,
+                     at: t, buttonDown: buttonDown)
+    }
+
+    /// Allocation-free form used on the multitouch thread: finger count and their centroid.
+    mutating func frame(count: Int, cx: Float, cy: Float, at t: TimeInterval, buttonDown: Bool) -> Bool {
+        if count == 0 {
+            guard let start else { return false } // idle: nothing to reset
             defer { self = TapDetector() }
-            guard let start else { return false }
             return maxFingers == 3 && t - start < Self.maxDuration && travel < Self.maxTravel && !pressed
         }
         if start == nil { start = t }
         pressed = pressed || buttonDown
-        maxFingers = max(maxFingers, points.count)
-        if points.count == 3 {
-            let c = (x: points.map(\.x).reduce(0, +) / 3, y: points.map(\.y).reduce(0, +) / 3)
-            if let a = anchor { travel = max(travel, hypot(c.x - a.x, c.y - a.y)) } else { anchor = c }
+        maxFingers = max(maxFingers, count)
+        if count == 3 {
+            if let a = anchor { travel = max(travel, hypot(cx - a.x, cy - a.y)) } else { anchor = (cx, cy) }
         }
         return false
     }
@@ -88,26 +94,35 @@ final class Trackpad {
         var fingers = 0
         var detector = TapDetector()
         var tapsEnabled = false
+        var buttonDown = false
     }
     private nonisolated static let shared_ = Shared()
 
+    /// Runs ~90 times a second while a finger is on the trackpad, so it allocates nothing and makes no
+    /// IPC calls: the button state comes from the input tap (`noteButton`).
     private nonisolated static let callback: ContactCallback = { _, data, count, timestamp, _ in
-        var points: [(x: Float, y: Float)] = []
-        if let data, count > 0 {
-            points.reserveCapacity(Int(count))
-            for i in 0..<Int(count) {
+        let n = Int(max(count, 0))
+        var sx: Float = 0, sy: Float = 0
+        if let data {
+            for i in 0..<n {
                 let base = data + i * 96 // sizeof(MTTouch)
-                points.append((base.load(fromByteOffset: 32, as: Float.self), base.load(fromByteOffset: 36, as: Float.self)))
+                sx += base.load(fromByteOffset: 32, as: Float.self)
+                sy += base.load(fromByteOffset: 36, as: Float.self)
             }
         }
-        let buttonDown = CGEventSource.buttonState(.combinedSessionState, button: .left)
+        let d = Float(max(n, 1))
         let s = shared_
-        let tapped: Bool = s.lock.withLock {
-            s.fingers = points.count
-            return s.detector.frame(points, at: timestamp, buttonDown: buttonDown) && s.tapsEnabled
-        }
+        s.lock.lock()
+        s.fingers = n
+        let tapped = s.detector.frame(count: n, cx: sx / d, cy: sy / d, at: timestamp, buttonDown: s.buttonDown) && s.tapsEnabled
+        s.lock.unlock()
         if tapped { DispatchQueue.main.async { MiddleButton.shared.tap() } }
         return 0
+    }
+
+    /// Called by the input tap on every left button down/up.
+    nonisolated static func noteButton(_ down: Bool) {
+        shared_.lock.withLock { shared_.buttonDown = down }
     }
 
     /// Fingers currently on the trackpad.
