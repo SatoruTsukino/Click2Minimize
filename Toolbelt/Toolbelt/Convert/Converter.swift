@@ -22,7 +22,7 @@ enum Converter {
             out = ImageFormat.allCases.map(ConvertAction.convertImage) + [.compress, .resize(.half), .resize(.fit(2048)), .resize(.fit(1024))]
         case .video:
             out = VideoTarget.allCases.map(ConvertAction.video) + [.removeAudio, .extractAudio]
-            if tools.ffmpeg != nil { out += FFTarget.allCases.map(ConvertAction.ffmpeg) }
+            if tools.ffmpeg != nil { out += FFTarget.allCases.filter { $0 != .webp || tools.ffmpegWebP }.map(ConvertAction.ffmpeg) }
         case .audio:
             out = [.extractAudio]
             if tools.ffmpeg != nil { out += [.ffmpeg(.mp3), .ffmpeg(.wav)] }
@@ -77,6 +77,7 @@ enum Converter {
                                              to: output(for: url, name: "\(base).m4a"))
         case .ffmpeg(let target):
             guard let ffmpeg = tools.ffmpeg else { throw ConvertError("ffmpeg is not installed") }
+            if target == .webp, !tools.ffmpegWebP { throw ConvertError("This ffmpeg build has no WebP encoder (libwebp)") }
             let out = output(for: url, name: "\(base).\(target.ext)")
             try await External.run(ffmpeg, ["-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", url.path] + target.args + [out.path])
             return out

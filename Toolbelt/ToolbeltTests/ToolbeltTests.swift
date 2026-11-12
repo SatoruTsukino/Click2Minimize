@@ -157,7 +157,7 @@ final class ConverterTests: XCTestCase {
 
     func testActionAvailability() {
         let none = Tools(ffmpeg: nil, soffice: nil)
-        let all = Tools(ffmpeg: URL(fileURLWithPath: "/x/ffmpeg"), soffice: URL(fileURLWithPath: "/x/soffice"))
+        let all = Tools(ffmpeg: URL(fileURLWithPath: "/x/ffmpeg"), soffice: URL(fileURLWithPath: "/x/soffice"), ffmpegWebP: true)
         let img = [URL(fileURLWithPath: "/a.png"), URL(fileURLWithPath: "/b.HEIC")]
         XCTAssertTrue(Converter.actions(for: img, tools: none).contains(.convertImage(.jpeg)))
         XCTAssertTrue(Converter.actions(for: [URL(fileURLWithPath: "/a.png"), URL(fileURLWithPath: "/a.mov")], tools: all).isEmpty)
@@ -165,6 +165,12 @@ final class ConverterTests: XCTestCase {
         XCTAssertFalse(Converter.actions(for: mov, tools: none).contains(.ffmpeg(.gif)))
         XCTAssertTrue(Converter.actions(for: mov, tools: all).contains(.ffmpeg(.gif)))
         XCTAssertTrue(Converter.actions(for: [URL(fileURLWithPath: "/a.mkv")], tools: all).contains(.ffmpeg(.mp4)))
+        XCTAssertTrue(Converter.actions(for: [URL(fileURLWithPath: "/a.mp4")], tools: all).contains(.ffmpeg(.webp)))
+        XCTAssertTrue(Converter.actions(for: [URL(fileURLWithPath: "/a.webm")], tools: all).contains(.ffmpeg(.webp)))
+        XCTAssertFalse(Converter.actions(for: [URL(fileURLWithPath: "/a.mp3")], tools: all).contains(.ffmpeg(.webp)))
+        let noWebP = Tools(ffmpeg: URL(fileURLWithPath: "/x/ffmpeg"))
+        XCTAssertFalse(Converter.actions(for: [URL(fileURLWithPath: "/a.mp4")], tools: noWebP).contains(.ffmpeg(.webp)))
+        XCTAssertTrue(Converter.actions(for: [URL(fileURLWithPath: "/a.mp4")], tools: noWebP).contains(.ffmpeg(.gif)))
         XCTAssertTrue(Converter.actions(for: [URL(fileURLWithPath: "/a.mp3")], tools: all).contains(.ffmpeg(.wav)))
         XCTAssertTrue(Converter.actions(for: [URL(fileURLWithPath: "/a.docx")], tools: none).isEmpty)
         XCTAssertEqual(Converter.actions(for: [URL(fileURLWithPath: "/a.docx")], tools: all), [.toPDF])
@@ -246,6 +252,35 @@ final class ConverterTests: XCTestCase {
         let mov = try await makeMovie()
         let gif = try await Converter.run(.ffmpeg(.gif), on: [mov], tools: Tools(ffmpeg: ffmpeg))[0]
         XCTAssertGreaterThan((try FileManager.default.attributesOfItem(atPath: gif.path)[.size] as? Int) ?? 0, 0)
+    }
+
+    func testWebPProbeReadsEncoderList() throws {
+        func fake(_ name: String, _ output: String) throws -> URL {
+            let url = folder.appendingPathComponent(name)
+            try "#!/bin/sh\necho '\(output)'\n".write(to: url, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+            return url
+        }
+        XCTAssertTrue(Tools.hasWebP(try fake("ffmpeg-webp", " V....D libwebp_anim         libwebp WebP image (codec webp)")))
+        XCTAssertFalse(Tools.hasWebP(try fake("ffmpeg-plain", " V....D gif                  GIF")))
+    }
+
+    func testFFmpegWebPWhenEncoderInstalled() async throws {
+        let tools = Tools.detect()
+        guard tools.ffmpeg != nil else { throw XCTSkip("ffmpeg not installed") }
+        guard tools.ffmpegWebP else {
+            do {
+                _ = try await Converter.run(.ffmpeg(.webp), on: [try await makeMovie()], tools: tools)
+                XCTFail("should refuse without libwebp")
+            } catch {
+                XCTAssertEqual(error.localizedDescription, "This ffmpeg build has no WebP encoder (libwebp)")
+            }
+            throw XCTSkip("ffmpeg built without libwebp")
+        }
+        let mov = try await makeMovie()
+        let webp = try await Converter.run(.ffmpeg(.webp), on: [mov], tools: tools)[0]
+        XCTAssertEqual(webp.pathExtension, "webp")
+        XCTAssertEqual(pixelSize(webp).2, UTType.webP.identifier)
     }
 }
 

@@ -1,4 +1,5 @@
 import Foundation
+import os
 import UniformTypeIdentifiers
 
 enum ImageFormat: String, CaseIterable {
@@ -25,13 +26,13 @@ enum VideoTarget: String, CaseIterable {
 }
 
 enum FFTarget: String, CaseIterable {
-    case mp4, webm, gif, mp3, wav
+    case mp4, webp, gif, mp3, wav
     var ext: String { rawValue }
     var isAudio: Bool { self == .mp3 || self == .wav }
     var args: [String] {
         switch self {
         case .mp4: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac", "-movflags", "+faststart"]
-        case .webm: ["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "33", "-c:a", "libopus"]
+        case .webp: ["-vf", "fps=15,scale=640:-2:flags=lanczos", "-c:v", "libwebp_anim", "-lossless", "0", "-q:v", "75", "-loop", "0", "-an"]
         case .gif: ["-vf", "fps=12,scale=640:-2:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse", "-loop", "0", "-an"]
         case .mp3: ["-vn", "-c:a", "libmp3lame", "-q:a", "2"]
         case .wav: ["-vn", "-c:a", "pcm_s16le"]
@@ -113,6 +114,8 @@ enum ConvertAction: Hashable, Identifiable {
 struct Tools: Equatable {
     var ffmpeg: URL?
     var soffice: URL?
+    /// The ffmpeg build has the libwebp encoder (Homebrew's default build does not).
+    var ffmpegWebP = false
 
     static func detect(path: String = ProcessInfo.processInfo.environment["PATH"] ?? "") -> Tools {
         let dirs = ["/opt/homebrew/bin", "/usr/local/bin"] + path.split(separator: ":").map(String.init)
@@ -121,7 +124,34 @@ struct Tools: Equatable {
                 .first { FileManager.default.isExecutableFile(atPath: $0) }
                 .map(URL.init(fileURLWithPath:))
         }
-        return Tools(ffmpeg: find("ffmpeg"),
-                     soffice: find("soffice", extra: ["/Applications/LibreOffice.app/Contents/MacOS/soffice"]))
+        // Homebrew's keg-only `ffmpeg-full` (has libwebp) wins over the plain `ffmpeg` on PATH.
+        let ffmpeg = find("ffmpeg", extra: ["/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg", "/usr/local/opt/ffmpeg-full/bin/ffmpeg"])
+        return Tools(ffmpeg: ffmpeg,
+                     soffice: find("soffice", extra: ["/Applications/LibreOffice.app/Contents/MacOS/soffice"]),
+                     ffmpegWebP: ffmpeg.map(hasWebP) ?? false)
+    }
+
+    /// Keyed by the resolved binary, so a `brew upgrade` (new Cellar path) is probed again.
+    private static let webPCache = OSAllocatedUnfairLock(initialState: [String: Bool]())
+
+    /// Asks ffmpeg for its encoder list once per binary; menus call `detect()` on every open.
+    static func hasWebP(_ ffmpeg: URL) -> Bool {
+        let key = ffmpeg.resolvingSymlinksInPath().path
+        if let cached = webPCache.withLock({ $0[key] }) { return cached }
+        let p = Process()
+        let pipe = Pipe()
+        p.executableURL = ffmpeg
+        p.arguments = ["-hide_banner", "-encoders"]
+        p.standardInput = FileHandle.nullDevice
+        p.standardOutput = pipe
+        p.standardError = FileHandle.nullDevice
+        var found = false
+        if (try? p.run()) != nil {
+            let out = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            p.waitUntilExit()
+            found = p.terminationStatus == 0 && out.contains("libwebp_anim")
+        }
+        webPCache.withLock { $0[key] = found }
+        return found
     }
 }
